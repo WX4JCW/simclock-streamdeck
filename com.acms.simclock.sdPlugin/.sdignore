@@ -1,0 +1,8 @@
+.testbuild/
+tests/
+tools/
+src/
+node_modules/
+build/
+*.log
+*.spec

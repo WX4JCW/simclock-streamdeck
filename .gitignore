@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Build output
+.testbuild/
+build/
+dist/
+com.acms.simclock.sdPlugin/bin/
+com.acms.simclock.sdPlugin/bridge/*.exe
+
+# Stream Deck writes plugin logs into the plugin folder at runtime
+com.acms.simclock.sdPlugin/logs/
+
+*.log
+*.spec

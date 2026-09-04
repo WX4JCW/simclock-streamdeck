@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head lang="en">
+    <meta charset="utf-8" />
+    <title>Sim Clock</title>
+    <script src="./sdpi-components.js"></script>
+    <style>
+        /* The Property Inspector renders on a dark ground. Raw <p>/<summary> elements
+           inherit no colour from sdpi.css, so they fall back to black and vanish --
+           every text element outside an sdpi-* component needs an explicit colour. */
+        .note {
+            padding: 4px 10px 8px;
+            line-height: 1.5;
+            color: #a4a4a4;
+        }
+
+        .note b {
+            color: #d8d8d8;
+        }
+
+        .note code {
+            color: #d8d8d8;
+            font-size: 11px;
+        }
+
+        .note a {
+            color: #7ac2f5;
+        }
+
+        details {
+            padding: 2px 0 4px;
+        }
+
+        summary {
+            padding-left: 10px;
+            color: #c4c4c4;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <sdpi-item label="Time Source">
+        <sdpi-select setting="source" default="pc">
+            <option value="pc">PC Time</option>
+            <option value="zulu">Zulu (real UTC)</option>
+            <option value="sim">Sim Zulu (MSFS)</option>
+            <option value="std">STD (SimBrief departure)</option>
+            <option value="tostd">Countdown to STD</option>
+        </sdpi-select>
+    </sdpi-item>
+
+    <sdpi-item label="Header">
+        <sdpi-textfield setting="header" placeholder="Auto (LOCAL / ZULU / SIM / STD)" maxlength="10"></sdpi-textfield>
+    </sdpi-item>
+
+    <sdpi-item label="Font">
+        <sdpi-textfield setting="fontFamily" placeholder="Segoe UI"></sdpi-textfield>
+    </sdpi-item>
+
+    <sdpi-item label="Header Color">
+        <sdpi-color setting="headerColor" default="#9AA0A6"></sdpi-color>
+    </sdpi-item>
+
+    <sdpi-item label="Time Color">
+        <sdpi-color setting="timeColor" default="#FFFFFF"></sdpi-color>
+    </sdpi-item>
+
+    <sdpi-item label="Background">
+        <sdpi-color setting="bgColor" default="#000000"></sdpi-color>
+    </sdpi-item>
+
+    <hr />
+
+    <sdpi-item label="Countdown Alerts">
+        <sdpi-textfield setting="warn1Min" placeholder="10 or 10:00" default="10"></sdpi-textfield>
+        <sdpi-color setting="warn1Color" default="#FFD400"></sdpi-color>
+    </sdpi-item>
+    <sdpi-item label="">
+        <sdpi-textfield setting="warn2Min" placeholder="5 or 5:00" default="5"></sdpi-textfield>
+        <sdpi-color setting="warn2Color" default="#FF8A00"></sdpi-color>
+    </sdpi-item>
+    <sdpi-item label="">
+        <sdpi-textfield setting="warn3Min" placeholder="0 or 0:00" default="0"></sdpi-textfield>
+        <sdpi-color setting="warn3Color" default="#FF3B30"></sdpi-color>
+    </sdpi-item>
+
+    <p class="note">
+        Recolours the <b>time</b> on <b>Countdown to STD</b> as departure approaches &mdash;
+        the header is left alone. Above every threshold it uses Time Color. Minutes before departure &mdash; plain
+        (<code>10</code>) or clock notation (<code>10:00</code>, <code>1:30</code>).
+        Clear a row to switch it off.
+    </p>
+
+    <hr />
+
+    <sdpi-item label="SimBrief User">
+        <sdpi-textfield global setting="simbriefUsername" placeholder="e.g. jsmith42"></sdpi-textfield>
+    </sdpi-item>
+
+    <p class="note">
+        <b>Press the key</b> to refetch the OFP after regenerating a flight plan.
+        Otherwise it refreshes on its own every 5 minutes.
+    </p>
+
+    <p class="note">
+        Your simbrief.com login name &mdash; case-insensitive, without the
+        <code>@simbrief.com</code> part. Entered once here and shared by every clock.
+        Never your password.
+    </p>
+
+    <details>
+        <summary>SimBrief not showing a time?</summary>
+        <p class="note">
+            Your SimBrief profile must have <b>publicly visible</b> enabled, or the API
+            returns nothing. Log in to
+            <a href="https://www.simbrief.com/system/account.php" target="_blank">simbrief.com</a>,
+            open <b>Account &rarr; Privacy</b>, and confirm the toggle. You also need an OFP
+            generated on that account.
+        </p>
+        <p class="note">
+            <b>STD</b> is scheduled off-block from the OFP. <b>Countdown to STD</b> is that
+            time minus sim Zulu, so it tracks time compression; once past it counts up as
+            <code>+MM:SS</code> and the header reads <code>LATE</code>.
+        </p>
+    </details>
+
+    <details>
+        <summary>Sim time &amp; fonts</summary>
+        <p class="note">
+            Sim Zulu and the countdown read the simulator's clock. The plugin starts and
+            stops the bridge for you &mdash; nothing to launch. With MSFS closed they show
+            <code>--:--</code> rather than substituting real time.
+        </p>
+        <p class="note">
+            Any font installed on this PC works &mdash; type its family name exactly as
+            Windows lists it, e.g. <code>Open Sans</code> or <code>Consolas</code>. Add a
+            weight to the name for a variant, e.g. <code>Open Sans Light</code>. A name that
+            doesn't match falls back to Segoe UI.
+        </p>
+    </details>
+</body>
+
+</html>

@@ -1,0 +1,16 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": ".testbuild",
+        "noEmit": false
+    },
+    "include": [
+        "src/chrono.ts",
+        "src/format.ts",
+        "src/render.ts",
+        "src/settings.ts",
+        "src/schedule.ts",
+        "src/ofp.ts",
+        "src/thresholds.ts"
+    ]
+}

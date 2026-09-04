@@ -1,0 +1,28 @@
+{
+    "name": "simclock",
+    "version": "1.0.0",
+    "description": "Stream Deck clock showing PC time, real Zulu, or Microsoft Flight Simulator time.",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "build": "rollup -c",
+        "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.acms.simclock\"",
+        "pack": "npm run build && streamdeck pack com.acms.simclock.sdPlugin --output dist --force",
+        "build:test": "tsc -p tsconfig.test.json",
+        "test": "npm run build:test && node tests/check.mjs",
+        "build:bridge": "pyinstaller --noconfirm --onefile --console --name simclock_bridge --add-binary \"%LOCALAPPDATA%/Programs/Python/Python312/Lib/site-packages/SimConnect/SimConnect.dll;SimConnect\" --hidden-import SimConnect --distpath com.acms.simclock.sdPlugin/bridge --workpath build --specpath build bridge/simclock_bridge.py"
+    },
+    "dependencies": {
+        "@elgato/streamdeck": "^2.1.2"
+    },
+    "devDependencies": {
+        "@rollup/plugin-commonjs": "^28.0.1",
+        "@rollup/plugin-node-resolve": "^15.3.0",
+        "@rollup/plugin-typescript": "^12.1.1",
+        "@tsconfig/node20": "^20.1.4",
+        "@types/node": "^20.19.43",
+        "rollup": "^4.24.0",
+        "tslib": "^2.8.0",
+        "typescript": "^5.6.0"
+    }
+}

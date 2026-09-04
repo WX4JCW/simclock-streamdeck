@@ -1,0 +1,14 @@
+{
+    "extends": "@tsconfig/node20/tsconfig.json",
+    "compilerOptions": {
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "target": "ES2022",
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "rootDir": "src",
+        "sourceMap": false,
+        "outDir": "com.acms.simclock.sdPlugin/bin"
+    },
+    "include": ["src/**/*"]
+}
