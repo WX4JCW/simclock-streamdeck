@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
     "Name": "Sim Clock",
-    "Version": "1.0.0.9",
+    "Version": "1.0.1.0",
     "Author": "ACMS Digital Systems",
     "Description": "PC time, real Zulu, or Microsoft Flight Simulator time on keys and dials.",
     "Category": "Sim Clock",
@@ -44,10 +44,10 @@
                 "layout": "layouts/canvas.json",
                 "Icon": "imgs/actions/clock/icon",
                 "TriggerDescription": {
-                    "Rotate": "Set chronometer",
-                    "Push": "Start/stop chronometer",
-                    "Touch": "Start/stop chronometer",
-                    "LongTouch": "Reset chronometer"
+                    "Rotate": "Set chronometer (clock sources only)",
+                    "Push": "Chronometer, or reload SimBrief on STD clocks",
+                    "Touch": "Chronometer, or reload SimBrief on STD clocks",
+                    "LongTouch": "Reset chronometer (clock sources only)"
                 }
             }
         }

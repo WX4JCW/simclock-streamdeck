@@ -79,17 +79,18 @@ export class ClockAction extends SingletonAction<ClockSettings> {
      * without it the only way to force a refresh was to go and edit a setting.
      */
     override async onKeyDown(ev: KeyDownEvent<ClockSettings>): Promise<void> {
-        const state = this.#stateFor(ev.action.id);
-        if (!needsSimBrief(resolveSource(state.settings))) return;
-
-        simBriefFeed.refreshNow();
-        // Force the next draw even if the value is unchanged, so the press visibly
-        // registers rather than looking like nothing happened.
-        state.lastDrawn = "";
-        await this.render(ev.action);
+        if (!this.#isSimBriefInstance(ev.action.id)) return;
+        await this.#refetchOfp(ev.action);
     }
 
+    /**
+     * Rotation drives the chronometer, so it must be fully inert on a SimBrief clock --
+     * not merely unused. A dialled-in target makes the chronometer "active", which would
+     * hijack the display and show SET over a countdown that can never run.
+     */
     override async onDialRotate(ev: DialRotateEvent<ClockSettings>): Promise<void> {
+        if (this.#isSimBriefInstance(ev.action.id)) return;
+
         this.#chronoFor(ev.action.id).rotate(ev.payload.ticks);
         await this.render(ev.action);
     }
@@ -103,6 +104,13 @@ export class ClockAction extends SingletonAction<ClockSettings> {
         const held = state.pressedAt !== undefined ? performance.now() - state.pressedAt : 0;
         state.pressedAt = undefined;
 
+        // On a SimBrief clock every press is a refresh -- long or short. Giving the hold
+        // a second meaning would be a mode the user has to remember for no gain.
+        if (this.#isSimBriefInstance(ev.action.id)) {
+            await this.#refetchOfp(ev.action);
+            return;
+        }
+
         const chrono = this.#chronoFor(ev.action.id);
         if (held >= LONG_PRESS_MS) {
             chrono.reset();
@@ -113,8 +121,27 @@ export class ClockAction extends SingletonAction<ClockSettings> {
     }
 
     override async onTouchTap(ev: TouchTapEvent<ClockSettings>): Promise<void> {
+        if (this.#isSimBriefInstance(ev.action.id)) {
+            await this.#refetchOfp(ev.action);
+            return;
+        }
+
         this.#chronoFor(ev.action.id).toggle();
         await this.render(ev.action);
+    }
+
+    /** True when this instance reads an OFP, and so answers presses with a refresh. */
+    #isSimBriefInstance(id: string): boolean {
+        return needsSimBrief(resolveSource(this.#stateFor(id).settings));
+    }
+
+    /** Pull a fresh OFP and redraw, whether a key or a dial asked for it. */
+    async #refetchOfp(target: ClockInstance): Promise<void> {
+        simBriefFeed.refreshNow();
+        // Force the next draw even if the value is unchanged, so the press visibly
+        // registers rather than looking like nothing happened.
+        this.#stateFor(target.id).lastDrawn = "";
+        await this.render(target);
     }
 
     /** Re-draw every visible instance; driven by the plugin's ticker. */

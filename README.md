@@ -105,6 +105,10 @@ On a Stream Deck + dial:
 | Long press (0.6 s) | Reset, returning to the clock |
 | Touch | Start / stop |
 
+The chronometer belongs to the clock sources. On a dial set to `STD` or
+`Countdown to STD` a press reloads SimBrief instead, and rotation is inert -- a dialled-in
+target would otherwise make the chronometer active and hijack the display.
+
 Set a target and it counts down; start from zero and it counts up. While active the
 chronometer takes over the same two lines — `CHR` over `MM:SS`. Rotation is ignored while
 running so a knock can't rewrite the target mid-timing.
