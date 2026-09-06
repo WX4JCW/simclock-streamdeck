@@ -53,9 +53,17 @@ type InstanceState = {
 export class ClockAction extends SingletonAction<ClockSettings> {
     readonly #state = new Map<string, InstanceState>();
 
+    /**
+     * Called when something may have shortened the required tick interval -- an instance
+     * appearing, settings changing, a chronometer starting. Without it the loop can stay
+     * parked on a minute-long sleep while a countdown sits visibly frozen.
+     */
+    onCadenceChanged: (() => void) | undefined;
+
     override async onWillAppear(ev: WillAppearEvent<ClockSettings>): Promise<void> {
         this.#stateFor(ev.action.id).settings = ev.payload.settings ?? {};
         this.#refreshFeedsFor(ev.action.id);
+        this.onCadenceChanged?.();
         await this.render(ev.action);
     }
 
@@ -70,6 +78,7 @@ export class ClockAction extends SingletonAction<ClockSettings> {
         state.settings = ev.payload.settings ?? {};
         state.revision++;
         this.#refreshFeedsFor(ev.action.id);
+        this.onCadenceChanged?.();
         await this.render(ev.action);
     }
 
@@ -92,6 +101,7 @@ export class ClockAction extends SingletonAction<ClockSettings> {
         if (this.#isSimBriefInstance(ev.action.id)) return;
 
         this.#chronoFor(ev.action.id).rotate(ev.payload.ticks);
+        this.onCadenceChanged?.();
         await this.render(ev.action);
     }
 
@@ -117,6 +127,7 @@ export class ClockAction extends SingletonAction<ClockSettings> {
         } else {
             chrono.toggle();
         }
+        this.onCadenceChanged?.();
         await this.render(ev.action);
     }
 
@@ -127,6 +138,7 @@ export class ClockAction extends SingletonAction<ClockSettings> {
         }
 
         this.#chronoFor(ev.action.id).toggle();
+        this.onCadenceChanged?.();
         await this.render(ev.action);
     }
 

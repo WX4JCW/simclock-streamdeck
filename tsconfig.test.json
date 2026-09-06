@@ -11,6 +11,7 @@
         "src/settings.ts",
         "src/schedule.ts",
         "src/ofp.ts",
-        "src/thresholds.ts"
+        "src/thresholds.ts",
+        "src/ticker.ts"
     ]
 }

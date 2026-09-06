@@ -11,6 +11,7 @@ import { parseEpochSeconds } from "../.testbuild/ofp.js";
 import { colorForRemaining, readThresholds } from "../.testbuild/thresholds.js";
 import { renderClock } from "../.testbuild/render.js";
 import { msUntilNextMinute } from "../.testbuild/schedule.js";
+import { Ticker } from "../.testbuild/ticker.js";
 import {
     defaultHeader,
     LATE_LABEL,
@@ -311,5 +312,80 @@ check("no row ever falls back to white", () => {
 });
 check("an explicitly chosen colour still wins over the default", () =>
     assert.equal(readThresholds({ warn1Min: "8", warn1Color: "#00AAFF" })[0]?.color, "#00AAFF"));
+
+console.log("\nticker wake (page-switch regression)");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+await (async () => {
+    // The bug: after the last instance disappears the loop parks on a long sleep, and
+    // nothing shortens it when instances come back. Model that with a delay provider
+    // that returns a long interval, then assert wake() runs anyway.
+    let runs = 0;
+    const t = new Ticker(async () => { runs++; }, () => 60_000);
+    t.start();
+    await sleep(30);
+    assert.equal(runs, 1, "start should run immediately");
+
+    await sleep(60);
+    assert.equal(runs, 1, "should then be parked on the long sleep");
+
+    t.wake();
+    await sleep(30);
+    assert.equal(runs, 2, "wake must cancel the pending sleep and run now");
+    t.stop();
+    passed++;
+    console.log("  ok  wake cancels a long pending sleep");
+})();
+
+await (async () => {
+    let runs = 0;
+    const t = new Ticker(async () => { runs++; }, () => 20);
+    t.start();
+    await sleep(120);
+    t.stop();
+    const after = runs;
+    await sleep(80);
+    assert.ok(runs > 2, "short delays should keep cycling");
+    assert.equal(runs, after, "stop must end the loop");
+    passed++;
+    console.log("  ok  stop ends the loop");
+})();
+
+await (async () => {
+    // A failing cycle must not kill the loop -- a transient Stream Deck write error
+    // should never leave every clock frozen.
+    let runs = 0, errors = 0;
+    const t = new Ticker(
+        async () => { runs++; throw new Error("boom"); },
+        () => 20,
+        () => { errors++; },
+    );
+    t.start();
+    await sleep(120);
+    t.stop();
+    assert.ok(runs > 2, `a throwing cycle must keep rescheduling, got ${runs}`);
+    assert.equal(errors, runs, "every failure should be reported");
+    passed++;
+    console.log("  ok  a throwing cycle keeps the loop alive");
+})();
+
+await (async () => {
+    // wake() during a cycle is ignored on purpose; the cycle's own reschedule sees the
+    // new state. Assert it does not stack a second concurrent run.
+    let concurrent = 0, maxConcurrent = 0;
+    const t = new Ticker(
+        async () => { concurrent++; maxConcurrent = Math.max(maxConcurrent, concurrent);
+                      await sleep(40); concurrent--; },
+        () => 500,
+    );
+    t.start();
+    await sleep(20);
+    t.wake(); t.wake(); t.wake();
+    await sleep(60);
+    t.stop();
+    assert.equal(maxConcurrent, 1, "wake must never start an overlapping cycle");
+    passed++;
+    console.log("  ok  wake during a cycle does not stack runs");
+})();
 
 console.log(`\n${passed} checks passed\n`);
