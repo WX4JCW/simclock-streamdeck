@@ -9,7 +9,7 @@ import { Chrono } from "../.testbuild/chrono.js";
 import { formatChrono, formatCountdown, formatHHMM, NO_TIME } from "../.testbuild/format.js";
 import { parseEpochSeconds } from "../.testbuild/ofp.js";
 import { colorForRemaining, readThresholds } from "../.testbuild/thresholds.js";
-import { renderClock } from "../.testbuild/render.js";
+import { estimateTextWidth, fitFontSize, renderClock } from "../.testbuild/render.js";
 import { msUntilNextMinute } from "../.testbuild/schedule.js";
 import { Ticker } from "../.testbuild/ticker.js";
 import {
@@ -387,5 +387,49 @@ await (async () => {
     passed++;
     console.log("  ok  wake during a cycle does not stack runs");
 })();
+
+console.log("\nfit text to key width");
+const KEY_W = 144, TIME_SIZE = 46, HDR_SIZE = 22, SAFE = 144 * 0.92;
+check("a normal HH:MM keeps its full size", () =>
+    assert.equal(fitFontSize("14:32", TIME_SIZE, KEY_W), TIME_SIZE));
+check("the placeholder keeps its full size", () =>
+    assert.equal(fitFontSize("--:--", TIME_SIZE, KEY_W), TIME_SIZE));
+check("a late countdown shrinks rather than clipping", () => {
+    const fitted = fitFontSize("+12:34", TIME_SIZE, KEY_W);
+    assert.ok(fitted < TIME_SIZE, `expected a smaller size, got ${fitted}`);
+    assert.ok(estimateTextWidth("+12:34", fitted) <= SAFE,
+        "fitted text must sit inside the safe width");
+});
+check("every late value from +00:00 to +99:59 fits", () => {
+    for (const v of ["+00:00", "+09:05", "+45:30", "+99:59", "+01:01"]) {
+        const f = fitFontSize(v, TIME_SIZE, KEY_W);
+        assert.ok(estimateTextWidth(v, f) <= SAFE, `${v} overflows at size ${f}`);
+    }
+});
+check("a full-length custom header fits, letter-spacing included", () => {
+    const spacing = 1.5;
+    const f = fitFontSize("DEPARTURES", HDR_SIZE, KEY_W, spacing);
+    assert.ok(f < HDR_SIZE, "a ten-character header must shrink");
+    assert.ok(estimateTextWidth("DEPARTURES", f, spacing) <= SAFE,
+        "fitted header must sit inside the safe width");
+});
+check("short headers are untouched", () => {
+    for (const h of ["LOCAL", "ZULU", "SIM", "STD", "TO STD", "LATE", "CHR"]) {
+        assert.equal(fitFontSize(h, HDR_SIZE, KEY_W, 1.5), HDR_SIZE, `${h} should not shrink`);
+    }
+});
+check("the dial has room the key does not", () => {
+    assert.equal(fitFontSize("+12:34", 42, 200), 42, "200px dial should fit six characters");
+});
+check("never returns a size below 1", () =>
+    assert.ok(fitFontSize("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", 46, 10) >= 1));
+check("the rendered SVG carries the reduced size", () => {
+    const decode = (uri) => Buffer.from(
+        uri.slice("data:image/svg+xml;base64,".length), "base64").toString("utf8");
+    const late = decode(renderClock({}, "key", "LATE", "+12:34"));
+    const normal = decode(renderClock({}, "key", "STD", "14:32"));
+    assert.match(normal, /font-size="46"/);
+    assert.ok(!/font-size="46"[^>]*>\+12:34/.test(late), "late value must not render at 46");
+});
 
 console.log(`\n${passed} checks passed\n`);
