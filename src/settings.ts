@@ -10,6 +10,7 @@ export type ClockSettings = {
     headerColor?: string;
     timeColor?: string;
     bgColor?: string;
+    bgTransparent?: boolean;
 } & JsonObject;
 
 /** Plugin-wide settings, shared by every placed instance. */

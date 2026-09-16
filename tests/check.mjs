@@ -432,4 +432,27 @@ check("the rendered SVG carries the reduced size", () => {
     assert.ok(!/font-size="46"[^>]*>\+12:34/.test(late), "late value must not render at 46");
 });
 
+console.log("\ntransparent background");
+const svgOf = (settings, target, header, value) => Buffer.from(
+    renderClock(settings, target, header, value).slice("data:image/svg+xml;base64,".length),
+    "base64").toString("utf8");
+check("opaque by default, so existing clocks are unchanged", () =>
+    assert.match(svgOf({}, "key", "ZULU", "14:32"), /<rect[^>]*fill="#000000"/));
+check("transparent omits the rect entirely", () => {
+    const svg = svgOf({ bgTransparent: true }, "dial", "ZULU", "14:32");
+    assert.ok(!svg.includes("<rect"), "no rect should be drawn");
+});
+check("text still renders when transparent", () => {
+    const svg = svgOf({ bgTransparent: true }, "dial", "SOBT ETA", "+12:34");
+    assert.ok(svg.includes(">SOBT ETA<") && svg.includes(">+12:34<"));
+});
+check("the colour is ignored while transparent", () => {
+    const svg = svgOf({ bgTransparent: true, bgColor: "#ff0000" }, "key", "A", "B");
+    assert.ok(!svg.includes("#ff0000"), "background colour must not leak through");
+});
+check("false and undefined both mean opaque", () => {
+    assert.match(svgOf({ bgTransparent: false }, "key", "A", "B"), /<rect/);
+    assert.match(svgOf({}, "key", "A", "B"), /<rect/);
+});
+
 console.log(`\n${passed} checks passed\n`);

@@ -76,6 +76,10 @@ export function renderClock(
 ): string {
     const g = GEOMETRY[target];
     const font = xml(resolveFont(settings));
+    // Transparent means simply not drawing the rectangle. It matters inside Stream Deck's
+    // Action Wheel, whose blue gradient is drawn behind the action -- an opaque fill here
+    // paints straight over it. SVG is transparent by default, so omitting is the whole fix.
+    const transparent = settings.bgTransparent === true;
     const bg = resolveColor(settings.bgColor, DEFAULTS.bgColor);
     const headerColor = resolveColor(settings.headerColor, DEFAULTS.headerColor);
     const timeColor = resolveColor(timeColorOverride ?? settings.timeColor, DEFAULTS.timeColor);
@@ -88,7 +92,7 @@ export function renderClock(
 
     const svg =
         `<svg xmlns="http://www.w3.org/2000/svg" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.w} ${g.h}">` +
-        `<rect width="${g.w}" height="${g.h}" fill="${bg}"/>` +
+        (transparent ? "" : `<rect width="${g.w}" height="${g.h}" fill="${bg}"/>`) +
         `<text x="${g.w / 2}" y="${g.headerY}" text-anchor="middle" ` +
         `font-family="${font}" font-size="${headerSize}" font-weight="600" ` +
         `letter-spacing="${headerSpacing}" fill="${headerColor}">${xml(header)}</text>` +
