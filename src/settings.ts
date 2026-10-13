@@ -16,6 +16,8 @@ export type ClockSettings = {
 /** Plugin-wide settings, shared by every placed instance. */
 export type GlobalSettings = {
     simbriefUsername?: string;
+    /** Font families read from the registry, published for the Property Inspector. */
+    installedFonts?: string[];
 } & JsonObject;
 
 export const DEFAULTS = {

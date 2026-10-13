@@ -56,7 +56,8 @@
     </sdpi-item>
 
     <sdpi-item label="Font">
-        <sdpi-textfield setting="fontFamily" placeholder="Segoe UI"></sdpi-textfield>
+        <sdpi-select id="fontSelect" setting="fontFamily" placeholder="Segoe UI (default)">
+        </sdpi-select>
     </sdpi-item>
 
     <sdpi-item label="Header Color">
@@ -144,12 +145,40 @@
             <code>--:--</code> rather than substituting real time.
         </p>
         <p class="note">
-            Any font installed on this PC works &mdash; type its family name exactly as
-            Windows lists it, e.g. <code>Open Sans</code> or <code>Consolas</code>. Add a
-            weight to the name for a variant, e.g. <code>Open Sans Light</code>. A name that
-            doesn't match falls back to Segoe UI.
+            The Font list is every family installed on this PC, read from Windows. Weights
+            appear as their own entries &mdash; <code>Open Sans</code> and
+            <code>Open Sans Light</code> are separate choices. Leave it blank for Segoe UI.
         </p>
     </details>
+
+    <script>
+        // The Property Inspector is sandboxed and cannot read the font registry, so the
+        // plugin enumerates families at startup and publishes them in global settings.
+        // Options are injected before the value binds, otherwise the saved font has no
+        // matching <option> and the select renders blank.
+        (async () => {
+            const select = document.getElementById("fontSelect");
+            if (!select) return;
+
+            const blank = document.createElement("option");
+            blank.value = "";
+            blank.textContent = "Segoe UI (default)";
+            select.appendChild(blank);
+
+            try {
+                const global = await SDPIComponents.streamDeckClient.getGlobalSettings();
+                for (const family of global?.installedFonts ?? []) {
+                    const option = document.createElement("option");
+                    option.value = family;
+                    option.textContent = family;
+                    select.appendChild(option);
+                }
+            } catch {
+                // Leaving just the default entry is better than an empty control; the
+                // plugin logs the reason on its side.
+            }
+        })();
+    </script>
 </body>
 
 </html>

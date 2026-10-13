@@ -12,6 +12,7 @@ import { colorForRemaining, readThresholds } from "../.testbuild/thresholds.js";
 import { estimateTextWidth, fitFontSize, renderClock } from "../.testbuild/render.js";
 import { msUntilNextMinute } from "../.testbuild/schedule.js";
 import { Ticker } from "../.testbuild/ticker.js";
+import { baseFamily, cleanFontName, parseRegistryFonts } from "../.testbuild/fonts.js";
 import {
     defaultHeader,
     LATE_LABEL,
@@ -453,6 +454,78 @@ check("the colour is ignored while transparent", () => {
 check("false and undefined both mean opaque", () => {
     assert.match(svgOf({ bgTransparent: false }, "key", "A", "B"), /<rect/);
     assert.match(svgOf({}, "key", "A", "B"), /<rect/);
+});
+
+console.log("\ninstalled font names");
+check("strips the format suffix", () => {
+    assert.equal(cleanFontName("Agency FB (TrueType)"), "Agency FB");
+    assert.equal(cleanFontName("Segoe UI Semibold (OpenType)"), "Segoe UI Semibold");
+});
+check("strips resolution suffixes", () => {
+    assert.equal(cleanFontName("MS Sans Serif (VGA res)"), "MS Sans Serif");
+    assert.equal(cleanFontName("Courier (All res)"), "Courier");
+    assert.equal(cleanFontName("Small Fonts (120dpi)"), "Small Fonts");
+});
+check("keeps the first of comma-joined localized aliases", () =>
+    assert.equal(cleanFontName("Arial Bold,Arial Negrita (TrueType)"), "Arial Bold"));
+check("a name without a suffix is left alone", () =>
+    assert.equal(cleanFontName("Open Sans"), "Open Sans"));
+check("empty or junk returns null rather than a blank entry", () => {
+    assert.equal(cleanFontName(""), null);
+    assert.equal(cleanFontName("   "), null);
+    assert.equal(cleanFontName("(TrueType)"), null);
+});
+check("parses reg query output", () => {
+    const out = [
+        "",
+        "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
+        "    Agency FB (TrueType)    REG_SZ    AGENCYR.TTF",
+        "    Arial (TrueType)    REG_SZ    arial.ttf",
+        "    Open Sans (TrueType)    REG_SZ    OpenSans-Regular.ttf",
+        "",
+    ].join("\r\n");
+    assert.deepEqual(parseRegistryFonts(out), ["Agency FB", "Arial", "Open Sans"]);
+});
+check("de-duplicates and sorts", () => {
+    const out = [
+        "    Zebra (TrueType)    REG_SZ    z.ttf",
+        "    Arial (TrueType)    REG_SZ    arial.ttf",
+        "    Arial,Arial CE (TrueType)    REG_SZ    arial.ttf",
+    ].join("\r\n");
+    assert.deepEqual(parseRegistryFonts(out), ["Arial", "Zebra"]);
+});
+check("ignores the key header and blank lines", () =>
+    assert.deepEqual(parseRegistryFonts("HKEY_LOCAL_MACHINE\SOFTWARE\Fonts\r\n\r\n"), []));
+
+console.log("\nbase family derivation");
+check("strips a single style word", () => {
+    assert.equal(baseFamily("Open Sans Regular"), "Open Sans");
+    assert.equal(baseFamily("Montserrat Bold"), "Montserrat");
+});
+check("strips stacked style words", () => {
+    assert.equal(baseFamily("Montserrat ExtraBold Italic"), "Montserrat");
+    assert.equal(baseFamily("Open Sans Bold Italic"), "Open Sans");
+});
+check("returns null when there is no style to strip", () => {
+    assert.equal(baseFamily("Consolas"), null);
+    assert.equal(baseFamily("Agency FB"), null);
+});
+check("width words are kept, they are part of the family", () => {
+    assert.equal(baseFamily("Bahnschrift Condensed"), null);
+    assert.equal(baseFamily("Arial Narrow"), null);
+});
+check("never strips down to nothing", () => {
+    assert.equal(baseFamily("Bold"), null);
+    assert.equal(baseFamily("Italic"), null);
+});
+check("both the family and its styles are offered", () => {
+    const out = [
+        "    Open Sans Regular (TrueType)    REG_SZ    OpenSans-Regular.ttf",
+        "    Open Sans Light (TrueType)    REG_SZ    OpenSans-Light.ttf",
+    ].join("\r\n");
+    const list = parseRegistryFonts(out);
+    assert.ok(list.includes("Open Sans"), "base family must be offered");
+    assert.ok(list.includes("Open Sans Light"), "style must still be offered");
 });
 
 console.log(`\n${passed} checks passed\n`);
