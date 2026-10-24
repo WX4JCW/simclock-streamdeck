@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
     "Name": "Sim Clock",
-    "Version": "1.0.2.0",
+    "Version": "1.1.0.0",
     "Author": "ACMS Digital Systems",
     "Description": "PC time, real Zulu, or Microsoft Flight Simulator time on keys and dials.",
     "Category": "Sim Clock",
@@ -48,6 +48,34 @@
                     "Push": "Chronometer, or reload SimBrief on STD clocks",
                     "Touch": "Chronometer, or reload SimBrief on STD clocks",
                     "LongTouch": "Reset chronometer (clock sources only)"
+                }
+            }
+        },
+        {
+            "Name": "Departure Timeline",
+            "UUID": "com.acms.simclock.timeline",
+            "Icon": "imgs/actions/clock/icon",
+            "Tooltip": "Reminders at set minutes before SimBrief scheduled off-block.",
+            "PropertyInspectorPath": "ui/timeline.html",
+            "Controllers": [
+                "Keypad",
+                "Encoder"
+            ],
+            "UserTitleEnabled": false,
+            "SupportedInMultiActions": false,
+            "States": [
+                {
+                    "Image": "imgs/actions/clock/key"
+                }
+            ],
+            "Encoder": {
+                "layout": "layouts/canvas.json",
+                "Icon": "imgs/actions/clock/icon",
+                "TriggerDescription": {
+                    "Rotate": "Browse reminders (demo: move the clock 1 min)",
+                    "Push": "Acknowledge / back",
+                    "Touch": "Acknowledge / back",
+                    "LongTouch": "Reset (demo: restart)"
                 }
             }
         }

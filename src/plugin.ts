@@ -5,6 +5,7 @@ import { ClockAction } from "./clock-action.js";
 import { listInstalledFonts } from "./fonts.js";
 import { simBriefFeed } from "./simbrief-feed.js";
 import { simFeed } from "./sim-feed.js";
+import { TimelineAction } from "./timeline-action.js";
 import { Ticker } from "./ticker.js";
 import type { GlobalSettings } from "./settings.js";
 
@@ -12,6 +13,9 @@ streamDeck.logger.setLevel("info");
 
 const clock = new ClockAction();
 streamDeck.actions.registerAction(clock);
+
+const timeline = new TimelineAction();
+streamDeck.actions.registerAction(timeline);
 
 // The SimBrief username is plugin-wide: entered once, used by every placed clock.
 streamDeck.settings.onDidReceiveGlobalSettings<GlobalSettings>((ev) => {
@@ -29,14 +33,15 @@ streamDeck.settings.onDidReceiveGlobalSettings<GlobalSettings>((ev) => {
  */
 const ticker = new Ticker(
     async () => {
-        if (clock.anyNeedsSimBridge()) {
+        if (clock.anyNeedsSimBridge() || timeline.anyNeedsSimBridge()) {
             bridgeProcess.ensureRunning();
         } else if (bridgeProcess.isRunning) {
             bridgeProcess.stop();
         }
         await clock.renderAll();
+        await timeline.renderAll();
     },
-    () => clock.nextTickDelayMs(),
+    () => Math.min(clock.nextTickDelayMs(), timeline.nextTickDelayMs() ?? Infinity),
     (err) => streamDeck.logger.warn(`Clock tick failed: ${String(err)}`),
 );
 
@@ -44,6 +49,7 @@ const ticker = new Ticker(
 // minute-long sleep. Coming back must cancel that sleep, or the countdown stays frozen
 // until the stale timer happens to fire.
 clock.onCadenceChanged = () => ticker.wake();
+timeline.onCadenceChanged = () => ticker.wake();
 
 simFeed.start();
 simBriefFeed.start();

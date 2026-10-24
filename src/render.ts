@@ -104,6 +104,48 @@ export function renderClock(
     return `data:image/svg+xml;base64,${Buffer.from(svg, "utf8").toString("base64")}`;
 }
 
+/**
+ * Three-line geometry for the departure timeline: a small status line, the reminder
+ * label, and a countdown. The label is the line that matters, so it gets the space.
+ */
+const LINES_GEOMETRY = {
+    key: { w: 144, h: 144, ys: [38, 84, 126], sizes: [20, 26, 28] },
+    dial: { w: 200, h: 100, ys: [24, 60, 92], sizes: [16, 26, 22] },
+} as const;
+
+/** One line of a three-line drawing; `color` is already resolved. */
+export type Line = { text: string; color: string };
+
+/**
+ * Status / label / countdown as an SVG data URI, each line shrunk to fit like the clock.
+ * Colours are passed in resolved, because which line is highlighted depends on state.
+ */
+export function renderLines(settings: ClockSettings, target: Target, lines: [Line, Line, Line]): string {
+    const g = LINES_GEOMETRY[target];
+    const font = xml(resolveFont(settings));
+    const transparent = settings.bgTransparent === true;
+    const bg = resolveColor(settings.bgColor, DEFAULTS.bgColor);
+
+    let body = "";
+    lines.forEach((line, i) => {
+        const row = i as 0 | 1 | 2;
+        const spacing = row === 0 ? 1.5 : 0;
+        const size = fitFontSize(line.text, g.sizes[row], g.w, spacing);
+        body +=
+            `<text x="${g.w / 2}" y="${g.ys[row]}" text-anchor="middle" ` +
+            `font-family="${font}" font-size="${size}" font-weight="600" ` +
+            `letter-spacing="${spacing}" fill="${line.color}">${xml(line.text)}</text>`;
+    });
+
+    const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.w} ${g.h}">` +
+        (transparent ? "" : `<rect width="${g.w}" height="${g.h}" fill="${bg}"/>`) +
+        body +
+        `</svg>`;
+
+    return `data:image/svg+xml;base64,${Buffer.from(svg, "utf8").toString("base64")}`;
+}
+
 /** Escape user-supplied text so a stray & or < cannot produce malformed SVG. */
 function xml(s: string): string {
     return s

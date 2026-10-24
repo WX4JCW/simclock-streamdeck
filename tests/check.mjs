@@ -9,7 +9,8 @@ import { Chrono } from "../.testbuild/chrono.js";
 import { formatChrono, formatCountdown, formatHHMM, NO_TIME } from "../.testbuild/format.js";
 import { parseEpochSeconds } from "../.testbuild/ofp.js";
 import { colorForRemaining, readThresholds } from "../.testbuild/thresholds.js";
-import { estimateTextWidth, fitFontSize, renderClock } from "../.testbuild/render.js";
+import { estimateTextWidth, fitFontSize, renderClock, renderLines } from "../.testbuild/render.js";
+import { DEFAULT_TIMELINE_TEXT, dLabel, parseTimeline, timelineView } from "../.testbuild/timeline.js";
 import { msUntilNextMinute } from "../.testbuild/schedule.js";
 import { Ticker } from "../.testbuild/ticker.js";
 import { baseFamily, cleanFontName, parseRegistryFonts } from "../.testbuild/fonts.js";
@@ -526,6 +527,65 @@ check("both the family and its styles are offered", () => {
     const list = parseRegistryFonts(out);
     assert.ok(list.includes("Open Sans"), "base family must be offered");
     assert.ok(list.includes("Open Sans Light"), "style must still be offered");
+});
+
+console.log("\ndeparture timeline");
+const MIN = 60_000;
+const items = parseTimeline(undefined);
+check("empty settings use the default list", () => {
+    assert.deepEqual(items.map((i) => i.minutes), [60, 35, 15, 10, 7, 3, 2]);
+    assert.equal(items[1].label, "BOARDING");
+});
+check("blank text also uses the default list", () =>
+    assert.equal(parseTimeline("   \n ").length, parseTimeline(DEFAULT_TIMELINE_TEXT).length));
+check("accepts D-35, 35:, 35= and plain forms, sorted earliest first", () => {
+    const got = parseTimeline("10 brief\nD-35 boarding\n60: water\n5=push");
+    assert.deepEqual(got.map((i) => [i.minutes, i.label]),
+        [[60, "WATER"], [35, "BOARDING"], [10, "BRIEF"], [5, "PUSH"]]);
+});
+check("skips lines with no number or no text", () =>
+    assert.deepEqual(parseTimeline("BOARDING\n35\n12 OK").map((i) => i.minutes), [12]));
+check("before the first item: next is D-60 with time until it", () => {
+    const v = timelineView(items, 70 * MIN, new Set());
+    assert.equal(v.kind, "next");
+    assert.equal(v.item.minutes, 60);
+    assert.equal(v.inMs, 10 * MIN);
+});
+check("at D-35 boarding is due", () => {
+    const v = timelineView(items, 35 * MIN, new Set());
+    assert.equal(v.kind, "due");
+    assert.equal(v.item.label, "BOARDING");
+    assert.equal(v.next.minutes, 15);
+});
+check("acknowledging moves on to the next item", () => {
+    const v = timelineView(items, 30 * MIN, new Set([35]));
+    assert.equal(v.kind, "next");
+    assert.equal(v.item.minutes, 15);
+    assert.equal(v.inMs, 15 * MIN);
+});
+check("an unacknowledged item is superseded when the next falls due", () => {
+    const v = timelineView(items, 14 * MIN, new Set());
+    assert.equal(v.kind, "due");
+    assert.equal(v.item.minutes, 15);
+});
+check("after the last item is acknowledged the timeline is done", () =>
+    assert.equal(timelineView(items, -5 * MIN, new Set([2])).kind, "done"));
+check("past STD the last item stays due until acknowledged", () => {
+    const v = timelineView(items, -5 * MIN, new Set());
+    assert.equal(v.kind, "due");
+    assert.equal(v.item.minutes, 2);
+});
+check("D label", () => assert.equal(dLabel(35), "D-35"));
+check("three-line render escapes text and draws all lines", () => {
+    const uri = renderLines({}, "dial", [
+        { text: "NEXT D-35", color: "#9AA0A6" },
+        { text: "FUEL & <WATER>", color: "#FFFFFF" },
+        { text: "in 04:12", color: "#FFFFFF" },
+    ]);
+    const svg = Buffer.from(uri.split(",")[1], "base64").toString("utf8");
+    assert.ok(svg.includes("FUEL &amp; &lt;WATER&gt;"));
+    assert.equal((svg.match(/<text /g) ?? []).length, 3);
+    assert.ok(svg.includes('width="200"'));
 });
 
 console.log(`\n${passed} checks passed\n`);

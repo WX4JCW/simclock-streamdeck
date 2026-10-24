@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+
+<head lang="en">
+    <meta charset="utf-8" />
+    <title>Departure Timeline</title>
+    <script src="./sdpi-components.js"></script>
+    <style>
+        /* Same rule as the clock panel: anything outside an sdpi-* component needs an
+           explicit colour or it renders black on the dark Property Inspector. */
+        .note {
+            padding: 4px 10px 8px;
+            line-height: 1.5;
+            color: #a4a4a4;
+        }
+
+        .note b {
+            color: #d8d8d8;
+        }
+
+        .note code {
+            color: #d8d8d8;
+            font-size: 11px;
+        }
+
+        details {
+            padding: 2px 0 4px;
+        }
+
+        summary {
+            padding-left: 10px;
+            color: #c4c4c4;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <sdpi-item label="Reminders">
+        <sdpi-textarea setting="items" rows="9" placeholder="60 WATER FUEL CATERING
+35 BOARDING
+15 DEPARTURE BRIEF
+10 BEFORE START A
+7 OK TO CLOSE
+3 BEFORE START
+2 REQUEST PUSH"></sdpi-textarea>
+    </sdpi-item>
+
+    <p class="note">
+        One per line: <b>minutes before STD</b>, then the text &mdash; <code>35 BOARDING</code>
+        or <code>D-35 BOARDING</code>. Leave it empty to use the list shown. Keep the text
+        short; long lines shrink to fit.
+    </p>
+
+    <hr />
+
+    <sdpi-item label="Demo">
+        <sdpi-checkbox setting="demo" label="Run without the sim"></sdpi-checkbox>
+    </sdpi-item>
+
+    <sdpi-item label="Demo STD in">
+        <sdpi-textfield setting="demoMinutes" placeholder="62 (minutes)" default="62"></sdpi-textfield>
+    </sdpi-item>
+
+    <p class="note">
+        Demo uses the PC clock and a pretend STD this many minutes from when it starts, so
+        no SimBrief or MSFS is needed. On a dial, <b>turn</b> to move the demo clock a
+        minute per click and walk through the whole departure. <b>Hold</b> the dial to
+        restart it. The top line reads <code>DEMO</code> while it's on.
+    </p>
+
+    <hr />
+
+    <sdpi-item label="Font">
+        <sdpi-select id="fontSelect" setting="fontFamily" placeholder="Segoe UI (default)">
+        </sdpi-select>
+    </sdpi-item>
+
+    <sdpi-item label="Header Color">
+        <sdpi-color setting="headerColor" default="#9AA0A6"></sdpi-color>
+    </sdpi-item>
+
+    <sdpi-item label="Text Color">
+        <sdpi-color setting="timeColor" default="#FFFFFF"></sdpi-color>
+    </sdpi-item>
+
+    <sdpi-item label="Due Color">
+        <sdpi-color setting="dueColor" default="#FFD400"></sdpi-color>
+    </sdpi-item>
+
+    <sdpi-item label="Background">
+        <sdpi-color setting="bgColor" default="#000000"></sdpi-color>
+    </sdpi-item>
+
+    <sdpi-item label="">
+        <sdpi-checkbox setting="bgTransparent" label="Transparent"></sdpi-checkbox>
+    </sdpi-item>
+
+    <hr />
+
+    <sdpi-item label="SimBrief User">
+        <sdpi-textfield global setting="simbriefUsername" placeholder="e.g. jsmith42"></sdpi-textfield>
+    </sdpi-item>
+
+    <details>
+        <summary>How it works</summary>
+        <p class="note">
+            STD is scheduled off-block from your SimBrief OFP, counted against sim Zulu, the
+            same as the <b>Countdown to STD</b> clock. The next reminder shows with the time
+            until it. When it falls due the text turns the Due color and stays until you
+            <b>press</b> to acknowledge it, or the next one falls due.
+        </p>
+        <p class="note">
+            Live, <b>turning</b> the dial browses the list; it returns by itself after 10
+            seconds, or press to come back. With nothing due, a press reloads SimBrief.
+            <b>Holding</b> the dial clears the acknowledgements. A new OFP clears them too.
+        </p>
+    </details>
+
+    <script>
+        // Same font list the clock uses, published by the plugin in global settings.
+        (async () => {
+            const select = document.getElementById("fontSelect");
+            if (!select) return;
+
+            const blank = document.createElement("option");
+            blank.value = "";
+            blank.textContent = "Segoe UI (default)";
+            select.appendChild(blank);
+
+            try {
+                const global = await SDPIComponents.streamDeckClient.getGlobalSettings();
+                for (const family of global?.installedFonts ?? []) {
+                    const option = document.createElement("option");
+                    option.value = family;
+                    option.textContent = family;
+                    select.appendChild(option);
+                }
+            } catch {
+                // The default entry alone is still usable.
+            }
+        })();
+    </script>
+</body>
+
+</html>

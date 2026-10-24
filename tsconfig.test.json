@@ -13,6 +13,7 @@
         "src/ofp.ts",
         "src/thresholds.ts",
         "src/ticker.ts",
-        "src/fonts.ts"
+        "src/fonts.ts",
+        "src/timeline.ts"
     ]
 }
