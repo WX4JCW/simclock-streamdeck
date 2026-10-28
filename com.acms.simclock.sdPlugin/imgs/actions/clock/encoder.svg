@@ -1,0 +1,9 @@
+<!-- Encoder.Icon: the dial thumbnail in the Stream Deck app's dial canvas. The SDK asks
+     for 72x72 and 144x144 here, against 20x20 and 40x40 for the action-list icon, so this
+     is its own file rather than icon.svg doing both jobs. Unlike the action icon it has no
+     monochrome requirement, so it keeps the same light grey as the key art. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+  <circle cx="72" cy="72" r="54" fill="none" stroke="#D8D8D8" stroke-width="9"/>
+  <line x1="72" y1="72" x2="72" y2="39.6" stroke="#D8D8D8" stroke-width="9" stroke-linecap="round"/>
+  <line x1="72" y1="72" x2="95.4" y2="82.8" stroke="#D8D8D8" stroke-width="9" stroke-linecap="round"/>
+</svg>

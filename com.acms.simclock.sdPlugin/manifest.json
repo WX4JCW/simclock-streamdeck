@@ -42,7 +42,7 @@
             ],
             "Encoder": {
                 "layout": "layouts/canvas.json",
-                "Icon": "imgs/actions/clock/icon",
+                "Icon": "imgs/actions/clock/encoder",
                 "TriggerDescription": {
                     "Rotate": "Set chronometer (clock sources only)",
                     "Push": "Chronometer, or reload SimBrief on STD clocks",
