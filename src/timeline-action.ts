@@ -78,8 +78,19 @@ export class TimelineAction extends SingletonAction<TimelineSettings> {
         await this.render(ev.action);
     }
 
+    /**
+     * Switching Stream Deck pages makes every instance disappear and reappear, so the
+     * state kept here has to outlive it. Acknowledgements belong to the departure, not to
+     * the page: dropping them meant flipping pages mid-turnaround brought every reminder
+     * already cleared back as DUE. The demo clock is the same -- it is tied to the pretend
+     * departure, not to the page. Only what belongs to the drawing is reset.
+     */
     override onWillDisappear(ev: WillDisappearEvent<TimelineSettings>): void {
-        this.#state.delete(ev.action.id);
+        const state = this.#state.get(ev.action.id);
+        if (state === undefined) return;
+        state.browse = undefined;
+        state.pressedAt = undefined;
+        state.lastDrawn = "";
     }
 
     override async onDidReceiveSettings(
@@ -181,8 +192,16 @@ export class TimelineAction extends SingletonAction<TimelineSettings> {
         return undefined;
     }
 
-    /** A live timeline reads sim time; a demo one runs on the PC clock. */
+    /**
+     * A live timeline reads sim time; a demo one runs on the PC clock.
+     *
+     * Only once there is an OFP, though. With no SOBT to count down to the dial reads
+     * NO OFP whether the bridge is up or not, so a timeline sitting on the deck between
+     * flights no longer keeps simclock_bridge.exe running for as long as Stream Deck is
+     * open. The bridge comes back on its own when the next OFP lands.
+     */
     anyNeedsSimBridge(): boolean {
+        if (simBriefFeed.sobt === null) return false;
         for (const instance of this.actions) {
             if (this.#state.get(instance.id)?.settings.demo !== true) return true;
         }

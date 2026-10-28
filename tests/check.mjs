@@ -9,7 +9,7 @@ import { Chrono } from "../.testbuild/chrono.js";
 import { formatChrono, formatCountdown, formatHHMM, NO_TIME } from "../.testbuild/format.js";
 import { parseEpochSeconds } from "../.testbuild/ofp.js";
 import { colorForRemaining, readThresholds } from "../.testbuild/thresholds.js";
-import { estimateTextWidth, fitFontSize, renderClock, renderLines } from "../.testbuild/render.js";
+import { estimateTextWidth, fitFontSize, fitWrapped, renderClock, renderLines } from "../.testbuild/render.js";
 import { DEFAULT_TIMELINE_TEXT, dLabel, parseTimeline, timelineView } from "../.testbuild/timeline.js";
 import { msUntilNextMinute } from "../.testbuild/schedule.js";
 import { Ticker } from "../.testbuild/ticker.js";
@@ -576,6 +576,60 @@ check("past STD the last item stays due until acknowledged", () => {
     assert.equal(v.item.minutes, 2);
 });
 check("D label", () => assert.equal(dLabel(35), "D-35"));
+// Key label wrapping: a key is 144px wide, so a three-word reminder on one line is
+// unreadable. KEY_LABEL_* mirror the label row of LINES_GEOMETRY.key.
+const KEY_LABEL_SIZE = 26;
+const KEY_LABEL_LINES = 3;
+const KEY_LABEL_HEIGHT = 56;
+const wrapOnKey = (text) => fitWrapped(text, KEY_LABEL_SIZE, KEY_W, KEY_LABEL_LINES, KEY_LABEL_HEIGHT);
+
+check("a label that already fits is left on one line", () => {
+    const w = wrapOnKey("BOARDING");
+    assert.deepEqual(w.lines, ["BOARDING"]);
+    assert.equal(w.size, fitFontSize("BOARDING", KEY_LABEL_SIZE, KEY_W));
+});
+check("a three-word label wraps instead of shrinking to nothing", () => {
+    const w = wrapOnKey("WATER FUEL CATERING");
+    assert.deepEqual(w.lines, ["WATER FUEL", "CATERING"]);
+    assert.ok(w.size >= 2 * fitFontSize("WATER FUEL CATERING", KEY_LABEL_SIZE, KEY_W),
+        `wrapping should at least double 10px, got ${w.size}`);
+});
+check("every default reminder stays legible on a key", () => {
+    for (const { label } of parseTimeline(DEFAULT_TIMELINE_TEXT)) {
+        const w = wrapOnKey(label);
+        assert.ok(w.size >= 18, `${label} rendered at ${w.size}px`);
+        assert.ok(w.lines.length <= KEY_LABEL_LINES, `${label} used ${w.lines.length} lines`);
+        assert.equal(w.lines.join(" "), label, `${label} lost or gained text`);
+    }
+});
+check("wrapping never exceeds the lines it is given", () => {
+    const w = fitWrapped("A B C D E F", KEY_LABEL_SIZE, KEY_W, 2, KEY_LABEL_HEIGHT);
+    assert.equal(w.lines.length, 2);
+    assert.equal(w.lines.join(" "), "A B C D E F");
+});
+check("one line allowed means no wrapping at all", () => {
+    const w = fitWrapped("WATER FUEL CATERING", KEY_LABEL_SIZE, KEY_W, 1, KEY_LABEL_HEIGHT);
+    assert.deepEqual(w.lines, ["WATER FUEL CATERING"]);
+});
+check("a wrapped label draws an extra line on the key", () => {
+    const uri = renderLines({}, "key", [
+        { text: "D-60 DUE", color: "#FFD400" },
+        { text: "WATER FUEL CATERING", color: "#FFD400" },
+        { text: "STD 12:00", color: "#FFFFFF" },
+    ]);
+    const svg = Buffer.from(uri.split(",")[1], "base64").toString("utf8");
+    assert.equal((svg.match(/<text /g) ?? []).length, 4);
+    assert.ok(svg.includes(">WATER FUEL<") && svg.includes(">CATERING<"));
+});
+check("the dial keeps the label on one line", () => {
+    const uri = renderLines({}, "dial", [
+        { text: "D-60 DUE", color: "#FFD400" },
+        { text: "WATER FUEL CATERING", color: "#FFD400" },
+        { text: "STD 12:00", color: "#FFFFFF" },
+    ]);
+    const svg = Buffer.from(uri.split(",")[1], "base64").toString("utf8");
+    assert.equal((svg.match(/<text /g) ?? []).length, 3);
+});
 check("three-line render escapes text and draws all lines", () => {
     const uri = renderLines({}, "dial", [
         { text: "NEXT D-35", color: "#9AA0A6" },

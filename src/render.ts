@@ -107,11 +107,79 @@ export function renderClock(
 /**
  * Three-line geometry for the departure timeline: a small status line, the reminder
  * label, and a countdown. The label is the line that matters, so it gets the space.
+ *
+ * `labelLines` is how many lines that label may wrap onto, and `labelHeight` the band it
+ * has to do it in. A key is square and narrow, so WATER FUEL CATERING on one line shrinks
+ * to about 10px, which is not readable at arm's length; over two lines it is twice that.
+ * The dial is wide and only 100px tall, with no room to stack, so it stays at one line.
  */
 const LINES_GEOMETRY = {
-    key: { w: 144, h: 144, ys: [38, 84, 126], sizes: [20, 26, 28] },
-    dial: { w: 200, h: 100, ys: [24, 60, 92], sizes: [16, 26, 22] },
+    key: { w: 144, h: 144, ys: [38, 84, 126], sizes: [20, 26, 28], labelLines: 3, labelHeight: 56 },
+    dial: { w: 200, h: 100, ys: [24, 60, 92], sizes: [16, 26, 22], labelLines: 1, labelHeight: 30 },
 } as const;
+
+/** Baseline-to-baseline distance as a multiple of the font size, for a wrapped label. */
+const LINE_HEIGHT = 1.15;
+
+/**
+ * Break `text` across up to `maxLines` lines and return the largest size that fits.
+ *
+ * One line is always in the running, so a label that already fits is left alone. An extra
+ * line is taken only when it makes the text bigger: narrower lines allow a larger size,
+ * but stacking them also divides `blockHeight`, and whichever limit bites first wins.
+ */
+export function fitWrapped(
+    text: string,
+    baseSize: number,
+    canvasWidth: number,
+    maxLines: number,
+    blockHeight: number,
+): { lines: string[]; size: number } {
+    let best = { lines: [text], size: fitFontSize(text, baseSize, canvasWidth) };
+    for (let n = 2; n <= maxLines; n++) {
+        const lines = splitLines(text, n);
+        if (lines.length < n) break; // Fewer words than lines; splitting further cannot help.
+        const vertical = blockHeight / (n * LINE_HEIGHT);
+        const widths = lines.map((line) => fitFontSize(line, baseSize, canvasWidth));
+        const size = Math.max(1, Math.floor(Math.min(vertical, ...widths)));
+        if (size > best.size) best = { lines, size };
+    }
+    return best;
+}
+
+/**
+ * Split `text` at spaces into `n` lines of roughly equal width, or into fewer when there
+ * are not enough words. Greedy from the left against an equal share of the total width,
+ * which is all the two- and three-word labels this is used on need.
+ */
+function splitLines(text: string, n: number): string[] {
+    const words = text.split(/\s+/).filter((w) => w !== "");
+    if (words.length < n) return words.length > 0 ? words : [text];
+
+    const share = words.reduce((sum, w) => sum + estimateTextWidth(w, 1), 0) / n;
+
+    const lines: string[] = [];
+    let current: string[] = [];
+    let width = 0;
+    let placed = 0;
+    for (const word of words) {
+        const w = estimateTextWidth(word, 1);
+        const linesLeft = n - lines.length;
+        const wordsLeft = words.length - placed;
+        // Break before this word once the line has had its share, provided there is still
+        // a line to break onto and enough words left to fill every remaining one.
+        if (current.length > 0 && linesLeft > 1 && wordsLeft >= linesLeft - 1 && width + w / 2 > share) {
+            lines.push(current.join(" "));
+            current = [];
+            width = 0;
+        }
+        current.push(word);
+        width += w;
+        placed++;
+    }
+    lines.push(current.join(" "));
+    return lines;
+}
 
 /** One line of a three-line drawing; `color` is already resolved. */
 export type Line = { text: string; color: string };
@@ -130,11 +198,22 @@ export function renderLines(settings: ClockSettings, target: Target, lines: [Lin
     lines.forEach((line, i) => {
         const row = i as 0 | 1 | 2;
         const spacing = row === 0 ? 1.5 : 0;
-        const size = fitFontSize(line.text, g.sizes[row], g.w, spacing);
-        body +=
-            `<text x="${g.w / 2}" y="${g.ys[row]}" text-anchor="middle" ` +
-            `font-family="${font}" font-size="${size}" font-weight="600" ` +
-            `letter-spacing="${spacing}" fill="${line.color}">${xml(line.text)}</text>`;
+        // Only the label is worth wrapping; the status and countdown rows are short and
+        // belong on the single line the geometry puts them on.
+        const fitted =
+            row === 1
+                ? fitWrapped(line.text, g.sizes[row], g.w, g.labelLines, g.labelHeight)
+                : { lines: [line.text], size: fitFontSize(line.text, g.sizes[row], g.w, spacing) };
+        // The block is centred on the row's baseline, so a single line lands exactly where
+        // it always did and nothing else on the canvas has to move.
+        const leading = fitted.size * LINE_HEIGHT;
+        const first = g.ys[row] - ((fitted.lines.length - 1) * leading) / 2;
+        fitted.lines.forEach((text, n) => {
+            body +=
+                `<text x="${g.w / 2}" y="${first + n * leading}" text-anchor="middle" ` +
+                `font-family="${font}" font-size="${fitted.size}" font-weight="600" ` +
+                `letter-spacing="${spacing}" fill="${line.color}">${xml(text)}</text>`;
+        });
     });
 
     const svg =
