@@ -37,19 +37,18 @@
 
 <body>
     <sdpi-item label="Reminders">
-        <sdpi-textarea setting="items" rows="9" placeholder="60 WATER FUEL CATERING
-35 BOARDING
-15 DEPARTURE BRIEF
-10 BEFORE START A
-7 OK TO CLOSE
-3 BEFORE START
-2 REQUEST PUSH"></sdpi-textarea>
+        <!-- Deliberately no placeholder: sdpi-textarea declares only rows, showlength and
+             maxlength, so a placeholder attribute is dropped without warning and the box
+             renders blank. The plugin seeds this setting with the default list instead, which
+             puts a real editable example here and survives the user starting to type. -->
+        <sdpi-textarea setting="items" rows="9"></sdpi-textarea>
     </sdpi-item>
 
     <p class="note">
         One per line: <b>minutes before STD</b>, then the text &mdash; <code>35 BOARDING</code>
-        or <code>D-35 BOARDING</code>. Leave it empty to use the list shown. Keep the text
-        short; long lines shrink to fit.
+        or <code>D-35 BOARDING</code>. The box starts with the standard list &mdash; edit or
+        replace it freely, and clearing it falls back to that same list. Keep the text short;
+        long lines shrink to fit.
     </p>
 
     <hr />

@@ -17,7 +17,13 @@ import { formatChrono, NO_TIME } from "./format.js";
 import { renderLines, type Line } from "./render.js";
 import { DEFAULTS, resolveColor, type ClockSettings } from "./settings.js";
 import { simBriefFeed } from "./simbrief-feed.js";
-import { dLabel, parseTimeline, timelineView, type TimelineItem } from "./timeline.js";
+import {
+    dLabel,
+    DEFAULT_TIMELINE_TEXT,
+    parseTimeline,
+    timelineView,
+    type TimelineItem,
+} from "./timeline.js";
 import { timeFor } from "./time-source.js";
 
 /** Press longer than this resets the acknowledgements (and restarts a demo). */
@@ -64,7 +70,9 @@ export class TimelineAction extends SingletonAction<TimelineSettings> {
     onCadenceChanged: (() => void) | undefined;
 
     override async onWillAppear(ev: WillAppearEvent<TimelineSettings>): Promise<void> {
-        this.#stateFor(ev.action.id).settings = ev.payload.settings ?? {};
+        const state = this.#stateFor(ev.action.id);
+        state.settings = ev.payload.settings ?? {};
+        await this.#seedItems(ev.action, state);
         this.#refreshFeedsFor(ev.action.id);
         this.onCadenceChanged?.();
         await this.render(ev.action);
@@ -288,6 +296,27 @@ export class TimelineAction extends SingletonAction<TimelineSettings> {
     #demoFor(state: InstanceState): { startedAt: number; offsetMs: number } {
         state.demo ??= { startedAt: Date.now(), offsetMs: 0 };
         return state.demo;
+    }
+
+    /**
+     * Write the default list into a timeline that has never had one.
+     *
+     * The property inspector's textarea cannot show a placeholder -- sdpi-textarea has no
+     * such property, so the attribute is dropped and an unconfigured timeline presents an
+     * empty box with no hint of the format. Seeding the setting with the list the parser
+     * already falls back to costs nothing behaviourally and leaves a real, editable example
+     * in the panel. Only an absent setting is seeded, so clearing the box stays cleared.
+     */
+    async #seedItems(target: TimelineInstance, state: InstanceState): Promise<void> {
+        if (state.settings.items !== undefined) return;
+
+        state.settings = { ...state.settings, items: DEFAULT_TIMELINE_TEXT };
+        try {
+            await target.setSettings(state.settings);
+        } catch (err) {
+            // Not fatal: the parser falls back to the same list, so only the panel looks bare.
+            streamDeck.logger.warn(`Could not seed timeline items: ${String(err)}`);
+        }
     }
 
     #refreshFeedsFor(id: string): void {
