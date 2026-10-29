@@ -1,15 +1,25 @@
 # Sim Clock
 
-A Stream Deck plugin showing **PC time**, **real Zulu (UTC)**, or **sim Zulu** — the clock
-inside Microsoft Flight Simulator — as two centered lines:
+A Stream Deck plugin with two actions, both working on keys and on Stream Deck + dials.
+Place either as many times as you like; each instance is configured independently.
+
+**Sim Clock** shows **PC time**, **real Zulu (UTC)**, **sim Zulu** — the clock inside
+Microsoft Flight Simulator — SimBrief's scheduled off-block, or a countdown to it, as two
+centered lines:
 
 ```
 HEADER
 HH:MM
 ```
 
-Works on keys and on Stream Deck + dials. One action: place it as many times as you like
-and set each instance's time source independently.
+**Departure Timeline** counts a list of reminders back from scheduled off-block, as three
+lines:
+
+```
+NEXT D-15
+DEPARTURE BRIEF
+in 04:12
+```
 
 ## Install
 
@@ -34,6 +44,8 @@ That writes `dist/com.acms.simclock.streamDeckPlugin` — a plain ZIP containing
 
 ## Settings
 
+Per instance of **Sim Clock**. The timeline has its own, listed further down.
+
 | Setting | Default | Notes |
 |---|---|---|
 | Time Source | PC Time | PC Time / Zulu / Sim Zulu / STD / Countdown to STD |
@@ -42,10 +54,14 @@ That writes `dist/com.acms.simclock.streamDeckPlugin` — a plain ZIP containing
 | Header Color | `#9AA0A6` | |
 | Time Color | `#FFFFFF` | |
 | Background | `#000000` | |
-| SimBrief User | _(blank)_ | Global — entered once, shared by every clock |
+| Transparent | off | Draws no background at all, so the Action Wheel's own gradient shows through |
+| Countdown Alerts | _(blank)_ | Up to three minute/colour pairs; `Countdown to STD` only |
+| SimBrief User | _(blank)_ | Global — entered once, shared by every clock and timeline |
 
-A very wide font can overflow a key — text cannot be measured from Node, so sizes are
-fixed with headroom rather than auto-fitted. Pick a condensed face if it clips.
+Text shrinks to fit rather than clipping. It cannot be measured from Node, so width is
+estimated from per-character advances chosen to over-estimate: a long header comes out
+slightly smaller than it had to be instead of running off the key. Small is recoverable,
+clipped is not.
 
 ## Sim Zulu
 
@@ -94,6 +110,63 @@ The OFP is polled every 5 minutes — it only changes when you regenerate it, an
 SimBrief's API risks a rate limit. Placing or reconfiguring a SimBrief clock pulls a fresh
 one immediately, rate-limited to once every 30 seconds.
 
+## Departure Timeline
+
+Reminders at fixed minutes before scheduled off-block. The three lines show the next one
+with the time until it; when it falls due all three change to the Due colour and stay
+there until it is acknowledged, or until the next one falls due — a missed reminder is
+superseded rather than piling up. With everything past and acknowledged it reads
+`COMPLETE`. With no OFP it reads `NO OFP`, and with no sim time `NO SIM`.
+
+The list is a plain textarea, one reminder per line, minutes first. `35 BOARDING`,
+`D-35 BOARDING`, `35: BOARDING` and `35=BOARDING` all parse; a line with no leading number,
+or no label, is skipped rather than guessed at. Labels are upper-cased, and the list is
+sorted largest-minutes-first, which is the order they fall due. The default is the AA 737
+sequence — D-15 briefing, D-10 Before Start, D-3 doors, D-2 push — plus the ground-service
+order ahead of it.
+
+That default is written into the setting the first time an instance appears, so the panel
+shows a real, editable example rather than an empty box: `sdpi-textarea` has no placeholder
+property, so the attribute is silently dropped. Clearing the box falls back to the same
+list, and only an absent setting is ever seeded.
+
+| Input | Key | Dial |
+|---|---|---|
+| Press | Acknowledge what is due, else reload SimBrief | Same |
+| Long press (0.6 s) | Clear every acknowledgement | Same |
+| Rotate | — | Browse the list ahead; returns by itself after 10 s |
+| Touch | — | Acknowledge |
+
+Both are timed down-and-up, so the hold works on a button with no dial. A press while
+browsing just returns to the live view.
+
+Acknowledgements belong to the departure, not to the page. Switching Stream Deck pages
+makes every instance disappear and reappear, so they are kept across it; a change to
+scheduled off-block — a new OFP — clears them.
+
+On a key the label wraps onto up to three lines, taking the largest size that fits both
+the width and the band it has. A key is 144 px wide, so `WATER FUEL CATERING` on one line
+lands at about 10 px; over two lines it is 20 px. One line stays centred on the same
+baseline it always used. The dial is 200x100 with no room to stack, so it is always one
+line.
+
+| Setting | Default | Notes |
+|---|---|---|
+| Reminders | the 737 sequence | One per line, minutes first |
+| Due Color | `#FFD400` | All three lines, while an item is due |
+| Demo | off | Runs on the PC clock against a pretend off-block |
+| Demo Minutes | 62 | Pretend off-block, minutes from when the demo starts |
+
+**Demo** needs no OFP and no MSFS, so a list can be tuned on the desktop. On a dial,
+rotation moves the pretend clock a minute per detent instead of browsing, which walks a
+whole departure in seconds. Turning demo on or off, or changing its minutes, restarts the
+pretend clock; editing the list or the colours leaves it running so the change can be
+watched.
+
+A live timeline needs sim time, but only once there is an OFP to count down to — with no
+scheduled off-block it reads `NO OFP` whether the bridge is up or not, so a timeline left
+on the deck between flights does not hold `simclock_bridge.exe` open.
+
 ## Chronometer (dials)
 
 On a Stream Deck + dial:
@@ -119,9 +192,10 @@ running so a knock can't rewrite the target mid-timing.
 npm test
 ```
 
-54 checks covering time formatting, the chronometer state machine, settings fallbacks,
-SVG rendering including XML escaping of user input, tick-boundary scheduling,
-OFP epoch parsing, and the countdown/late transition.
+128 checks covering time formatting, the chronometer state machine, settings fallbacks,
+SVG rendering including XML escaping of user input and key label wrapping, tick-boundary
+scheduling, OFP epoch parsing, the countdown/late transition, countdown alert thresholds,
+registry font parsing, and timeline parsing and which reminder is due.
 No Stream Deck or MSFS required.
 
 ## Drawing cost
@@ -136,7 +210,8 @@ times. Three things keep it cheap:
 - **The ticker schedules itself.** With only real-time clocks placed it sleeps to the next
   minute boundary. It drops to 1 Hz when a chronometer is running, or when a Sim Zulu
   clock is placed -- time compression makes sim minutes elapse faster than real ones, so
-  real minute boundaries would miss them.
+  real minute boundaries would miss them. A placed timeline counts down in seconds, so it
+  holds 1 Hz for as long as it is on screen.
 
 With three clocks placed this is roughly three Stream Deck messages a minute rather than
 three hundred and sixty.
@@ -146,10 +221,14 @@ three hundred and sixty.
 ```
 src/                    plugin source (TypeScript)
   plugin.ts             entry point; one self-scheduling ticker drives every instance
-  clock-action.ts       the action: events, chronometer wiring, drawing
-  render.ts             two-line SVG
+  clock-action.ts       the clock action: events, chronometer wiring, drawing
+  timeline-action.ts    the timeline action: events, acknowledgements, browsing, demo
+  render.ts             two-line and three-line SVG, with key label wrapping
   format.ts             HH:MM and MM:SS formatting (pure, tested)
   settings.ts           settings resolution and validation (pure, tested)
+  timeline.ts           reminder parsing and which one is due (pure, tested)
+  thresholds.ts         countdown alert colours (pure, tested)
+  fonts.ts              installed font families, read from the registry (pure, tested)
   schedule.ts           minute-boundary tick math (pure, tested)
   ofp.ts                SimBrief epoch parsing (pure, tested)
   simbrief-feed.ts      polls the OFP for scheduled off-block

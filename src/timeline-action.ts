@@ -8,6 +8,7 @@ import streamDeck, {
     type DidReceiveSettingsEvent,
     type KeyAction,
     type KeyDownEvent,
+    type KeyUpEvent,
     type TouchTapEvent,
     type WillAppearEvent,
     type WillDisappearEvent,
@@ -113,8 +114,18 @@ export class TimelineAction extends SingletonAction<TimelineSettings> {
         await this.render(ev.action);
     }
 
-    override async onKeyDown(ev: KeyDownEvent<TimelineSettings>): Promise<void> {
-        await this.#press(ev.action, false);
+    /**
+     * A key is timed exactly like the dial, down and up, so a button-only deck gets the
+     * long press too. Acting on release rather than on press is what makes a hold
+     * measurable at all; without it there was no way to clear the acknowledgements
+     * without a dial.
+     */
+    override onKeyDown(ev: KeyDownEvent<TimelineSettings>): void {
+        this.#down(ev.action.id);
+    }
+
+    override async onKeyUp(ev: KeyUpEvent<TimelineSettings>): Promise<void> {
+        await this.#up(ev.action);
     }
 
     /**
@@ -139,14 +150,24 @@ export class TimelineAction extends SingletonAction<TimelineSettings> {
     }
 
     override onDialDown(ev: DialDownEvent<TimelineSettings>): void {
-        this.#stateFor(ev.action.id).pressedAt = performance.now();
+        this.#down(ev.action.id);
     }
 
     override async onDialUp(ev: DialUpEvent<TimelineSettings>): Promise<void> {
-        const state = this.#stateFor(ev.action.id);
+        await this.#up(ev.action);
+    }
+
+    /** Start timing a press, so the release can tell a tap from a hold. */
+    #down(id: string): void {
+        this.#stateFor(id).pressedAt = performance.now();
+    }
+
+    /** Act on release: held long enough is a reset, anything shorter is a tap. */
+    async #up(target: TimelineInstance): Promise<void> {
+        const state = this.#stateFor(target.id);
         const held = state.pressedAt !== undefined ? performance.now() - state.pressedAt : 0;
         state.pressedAt = undefined;
-        await this.#press(ev.action, held >= LONG_PRESS_MS);
+        await this.#press(target, held >= LONG_PRESS_MS);
     }
 
     override async onTouchTap(ev: TouchTapEvent<TimelineSettings>): Promise<void> {

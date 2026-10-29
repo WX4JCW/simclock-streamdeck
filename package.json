@@ -1,7 +1,7 @@
 {
     "name": "simclock",
     "version": "1.0.0",
-    "description": "Stream Deck clock showing PC time, real Zulu, or Microsoft Flight Simulator time.",
+    "description": "Stream Deck flight clocks and a SimBrief departure timeline for Microsoft Flight Simulator.",
     "type": "module",
     "private": true,
     "scripts": {

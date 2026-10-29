@@ -1,9 +1,9 @@
 {
     "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
     "Name": "Sim Clock",
-    "Version": "1.1.0.3",
+    "Version": "1.1.0.5",
     "Author": "ACMS Digital Systems",
-    "Description": "PC time, real Zulu, or Microsoft Flight Simulator time on keys and dials.",
+    "Description": "Flight clocks and a SimBrief departure timeline for Microsoft Flight Simulator, on keys and dials.",
     "Category": "Sim Clock",
     "CategoryIcon": "imgs/plugin/category",
     "Icon": "imgs/plugin/icon",
