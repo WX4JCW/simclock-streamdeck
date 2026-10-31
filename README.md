@@ -72,7 +72,11 @@ clipped is not.
 is tinted a deep shade of its colour, a solid band across the top carries the header in
 black or white (whichever reads better), the time sits in the middle in a light shade, and
 a ring marks something active. Only flat shapes and text: Stream Deck's SVG renderer did
-not draw blur or gradients in tests. One colour per function:
+not draw blur or gradients in tests.
+
+![The six dials on a Stream Deck + XL: LOCAL, ZULU, SIM, SOBT, a late TO SOBT ringed in red, and a due timeline reminder](docs/touch-strip.png)
+
+One colour per function:
 
 | Shows | Colour |
 |---|---|
