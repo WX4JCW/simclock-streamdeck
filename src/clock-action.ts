@@ -15,18 +15,17 @@ import streamDeck, {
 
 import { Chrono } from "./chrono.js";
 import { formatChrono, formatCountdown, formatHHMM } from "./format.js";
-import { renderClock } from "./render.js";
+import { renderClock, type Look, type Tone } from "./render.js";
 import { msUntilNextMinute } from "./schedule.js";
 import {
-    DEFAULTS,
     defaultHeader,
     LATE_LABEL,
     needsSimBrief,
     needsSimBridge,
-    resolveColor,
     resolveHeader,
     resolveSource,
     type ClockSettings,
+    type TimeSource,
 } from "./settings.js";
 import { simBriefFeed } from "./simbrief-feed.js";
 import { colorForRemaining, readThresholds } from "./thresholds.js";
@@ -34,6 +33,15 @@ import { timeFor } from "./time-source.js";
 
 /** Press longer than this resets the chronometer instead of starting/stopping it. */
 const LONG_PRESS_MS = 600;
+
+/** Each source's colour in the Panel style; the countdown turns to "late" past STD. */
+const TONE_FOR: Record<TimeSource, Tone> = {
+    pc: "local",
+    zulu: "zulu",
+    sim: "sim",
+    std: "std",
+    tostd: "countdown",
+};
 
 /** A placed instance of this action -- a key, or a Stream Deck + dial. */
 type ClockInstance = DialAction<ClockSettings> | KeyAction<ClockSettings>;
@@ -203,21 +211,14 @@ export class ClockAction extends SingletonAction<ClockSettings> {
     async render(target: ClockInstance): Promise<void> {
         const state = this.#stateFor(target.id);
         const isDial = target.isDial();
-        const { header, value, timeColor } = this.#readout(state, isDial);
+        const look = this.#readout(state, isDial);
 
-        // The colour is part of the signature: a threshold crossing changes nothing but
-        // the colour, and would otherwise be skipped as an identical draw.
-        const signature =
-            `${state.revision}|${isDial ? "d" : "k"}|${header}|${value}|${timeColor ?? ""}`;
+        // The whole look is the signature: a threshold crossing changes nothing but the
+        // colour, and would otherwise be skipped as an identical draw.
+        const signature = `${state.revision}|${isDial ? "d" : "k"}|${JSON.stringify(look)}`;
         if (signature === state.lastDrawn) return;
 
-        const image = renderClock(
-            state.settings,
-            isDial ? "dial" : "key",
-            header,
-            value,
-            timeColor,
-        );
+        const image = renderClock(state.settings, isDial ? "dial" : "key", look);
         try {
             if (target.isDial()) {
                 await target.setFeedback({ canvas: image });
@@ -230,17 +231,16 @@ export class ClockAction extends SingletonAction<ClockSettings> {
         }
     }
 
-    /** The two lines to draw: the clock, or the chronometer when one is set or running. */
-    #readout(
-        state: InstanceState,
-        isDial: boolean,
-    ): { header: string; value: string; timeColor?: string } {
+    /** What to draw: the clock, or the chronometer when one is set or running. */
+    #readout(state: InstanceState, isDial: boolean): Look {
         const chrono = state.chrono;
         if (isDial && chrono?.isActive()) {
             if (chrono.hasExpired()) chrono.toggle();
             return {
-                header: chrono.state === "idle" ? "SET" : "CHR",
+                tone: "chrono",
+                caption: chrono.state === "idle" ? "SET" : "CHR",
                 value: formatChrono(chrono.displayMs()),
+                active: chrono.state === "running",
             };
         }
 
@@ -252,20 +252,18 @@ export class ClockAction extends SingletonAction<ClockSettings> {
             const { text, late } = formatCountdown(sobt, simNow);
 
             // Thresholds only mean something when there is a real countdown to colour;
-            // with no OFP or no sim clock the placeholder keeps the base colour.
-            const timeColor =
+            // with no OFP or no sim clock the placeholder keeps the plain look. A crossed
+            // threshold rings the section in its colour and colours the time.
+            const crossed =
                 sobt !== null && simNow !== null
-                    ? colorForRemaining(
-                          sobt.getTime() - simNow.getTime(),
-                          readThresholds(state.settings),
-                          resolveColor(state.settings.timeColor, DEFAULTS.timeColor),
-                      )
-                    : undefined;
+                    ? colorForRemaining(sobt.getTime() - simNow.getTime(), readThresholds(state.settings), "")
+                    : "";
 
             return {
-                header: resolveHeader(state.settings, late ? LATE_LABEL : defaultHeader(source)),
+                tone: late ? "late" : "countdown",
+                caption: resolveHeader(state.settings, late ? LATE_LABEL : defaultHeader(source)),
                 value: text,
-                timeColor,
+                ...(crossed ? { active: true, accent: crossed } : {}),
             };
         }
 
@@ -275,7 +273,8 @@ export class ClockAction extends SingletonAction<ClockSettings> {
                 : formatHHMM(timeFor(source), source);
 
         return {
-            header: resolveHeader(state.settings, defaultHeader(source)),
+            tone: TONE_FOR[source],
+            caption: resolveHeader(state.settings, defaultHeader(source)),
             value,
         };
     }

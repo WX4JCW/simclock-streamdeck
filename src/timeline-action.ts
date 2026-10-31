@@ -15,8 +15,8 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 
 import { formatChrono, NO_TIME } from "./format.js";
-import { renderLines, type Line } from "./render.js";
-import { DEFAULTS, resolveColor, type ClockSettings } from "./settings.js";
+import { renderLines, type Look } from "./render.js";
+import { resolveColor, type ClockSettings } from "./settings.js";
 import { simBriefFeed } from "./simbrief-feed.js";
 import {
     dLabel,
@@ -232,12 +232,12 @@ export class TimelineAction extends SingletonAction<TimelineSettings> {
     async render(target: TimelineInstance): Promise<void> {
         const state = this.#stateFor(target.id);
         const isDial = target.isDial();
-        const lines = this.#lines(state);
+        const look = this.#look(state);
 
-        const signature = `${state.revision}|${isDial ? "d" : "k"}|` + lines.map((l) => `${l.text}~${l.color}`).join("|");
+        const signature = `${state.revision}|${isDial ? "d" : "k"}|${JSON.stringify(look)}`;
         if (signature === state.lastDrawn) return;
 
-        const image = renderLines(state.settings, isDial ? "dial" : "key", lines);
+        const image = renderLines(state.settings, isDial ? "dial" : "key", look);
         try {
             if (target.isDial()) {
                 await target.setFeedback({ canvas: image });
@@ -263,10 +263,9 @@ export class TimelineAction extends SingletonAction<TimelineSettings> {
         return { sobtMs: sobt.getTime(), remainingMs: sobt.getTime() - now.getTime() };
     }
 
-    #lines(state: InstanceState): [Line, Line, Line] {
+    /** Caption, reminder and status line; a due reminder fills the band with the Due colour. */
+    #look(state: InstanceState): Look {
         const s = state.settings;
-        const headerColor = resolveColor(s.headerColor, DEFAULTS.headerColor);
-        const timeColor = resolveColor(s.timeColor, DEFAULTS.timeColor);
         const dueColor = resolveColor(s.dueColor, DEFAULT_DUE_COLOR);
         const tag = s.demo === true ? "DEMO " : "";
         const items = parseTimeline(s.items);
@@ -274,11 +273,7 @@ export class TimelineAction extends SingletonAction<TimelineSettings> {
         const clock = this.#clock(state);
         if (clock === null) {
             const missing = simBriefFeed.sobt === null ? "NO OFP" : "NO SIM";
-            return [
-                { text: "TIMELINE", color: headerColor },
-                { text: missing, color: timeColor },
-                { text: NO_TIME, color: timeColor },
-            ];
+            return { tone: "timeline", caption: "TIMELINE", value: missing, sub: NO_TIME };
         }
 
         // A new OFP is a new departure: acknowledgements from the last one no longer apply.
@@ -293,34 +288,36 @@ export class TimelineAction extends SingletonAction<TimelineSettings> {
             const i = state.browse.index;
             const item = browsed;
             const inMs = clock.remainingMs - item.minutes * 60_000;
-            return [
-                { text: `${dLabel(item.minutes)}  ${i + 1}/${items.length}`, color: headerColor },
-                { text: item.label, color: timeColor },
-                { text: inMs >= 0 ? `in ${formatChrono(inMs)}` : "PAST", color: headerColor },
-            ];
+            return {
+                tone: "timeline",
+                caption: `${dLabel(item.minutes)}  ${i + 1}/${items.length}`,
+                value: item.label,
+                sub: inMs >= 0 ? `in ${formatChrono(inMs)}` : "PAST",
+            };
         }
 
         const toStd = countdown(clock.remainingMs);
         const view = timelineView(items, clock.remainingMs, state.acknowledged);
         switch (view.kind) {
             case "due":
-                return [
-                    { text: `${tag}${dLabel(view.item.minutes)} DUE`, color: dueColor },
-                    { text: view.item.label, color: dueColor },
-                    { text: `STD ${toStd}`, color: timeColor },
-                ];
+                return {
+                    tone: "timeline",
+                    caption: `${tag}${dLabel(view.item.minutes)} DUE`,
+                    value: view.item.label,
+                    sub: `STD ${toStd}`,
+                    active: true,
+                    alert: true,
+                    accent: dueColor,
+                };
             case "next":
-                return [
-                    { text: `${tag}NEXT ${dLabel(view.item.minutes)}`, color: headerColor },
-                    { text: view.item.label, color: timeColor },
-                    { text: `in ${formatChrono(view.inMs)}`, color: timeColor },
-                ];
+                return {
+                    tone: "timeline",
+                    caption: `${tag}NEXT ${dLabel(view.item.minutes)}`,
+                    value: view.item.label,
+                    sub: `in ${formatChrono(view.inMs)}`,
+                };
             default:
-                return [
-                    { text: `${tag}TIMELINE`, color: headerColor },
-                    { text: "COMPLETE", color: timeColor },
-                    { text: `STD ${toStd}`, color: timeColor },
-                ];
+                return { tone: "timeline", caption: `${tag}TIMELINE`, value: "COMPLETE", sub: `STD ${toStd}` };
         }
     }
 

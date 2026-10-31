@@ -50,11 +50,12 @@ Per instance of **Sim Clock**. The timeline has its own, listed further down.
 |---|---|---|
 | Time Source | PC Time | PC Time / Zulu / Sim Zulu / STD / Countdown to STD |
 | Header | auto | Blank shows `LOCAL` / `ZULU` / `SIM`; type anything else, e.g. `KJFK` |
+| Style | PANEL | PANEL or CLASSIC; see Style below |
 | Font | Segoe UI | Any font family installed on this PC |
-| Header Color | `#9AA0A6` | |
-| Time Color | `#FFFFFF` | |
-| Background | `#000000` | |
-| Transparent | off | Draws no background at all, so the Action Wheel's own gradient shows through |
+| Header Color | `#9AA0A6` | CLASSIC only |
+| Time Color | `#FFFFFF` | CLASSIC only |
+| Background | `#000000` | CLASSIC only |
+| Transparent | off | CLASSIC draws no background at all; PANEL leaves out only the black behind its rounded corners |
 | Countdown Alerts | _(blank)_ | Up to three minute/colour pairs; `Countdown to STD` only |
 | SimBrief User | _(blank)_ | Global — entered once, shared by every clock and timeline |
 
@@ -62,6 +63,28 @@ Text shrinks to fit rather than clipping. It cannot be measured from Node, so wi
 estimated from per-character advances chosen to over-estimate: a long header comes out
 slightly smaller than it had to be instead of running off the key. Small is recoverable,
 clipped is not.
+
+## Style
+
+**PANEL** (the default) is the look of the ChasePlane deck plugin: the key or dial section
+is tinted a deep shade of its colour, a solid band across the top carries the header in
+black or white (whichever reads better), the time sits in the middle in a light shade, and
+a ring marks something active. Only flat shapes and text: Stream Deck's SVG renderer did
+not draw blur or gradients in tests. One colour per function:
+
+| Shows | Colour |
+|---|---|
+| PC time | teal |
+| Zulu | blue |
+| Sim Zulu | purple |
+| STD | gold |
+| Countdown to STD | orange; red once `LATE` |
+| Chronometer | green, ringed while running |
+| Departure Timeline | pink; the band turns the Due colour while an item is due |
+
+A crossed countdown alert rings the section in its colour and colours the time.
+
+**CLASSIC** is the plain look from before, header over time in the colours you pick.
 
 ## Sim Zulu
 
@@ -153,7 +176,7 @@ line.
 | Setting | Default | Notes |
 |---|---|---|
 | Reminders | the 737 sequence | One per line, minutes first |
-| Due Color | `#FFD400` | All three lines, while an item is due |
+| Due Color | `#FFD400` | PANEL: band and ring while an item is due; CLASSIC: the top two lines |
 | Demo | off | Runs on the PC clock against a pretend off-block |
 | Demo Minutes | 62 | Pretend off-block, minutes from when the demo starts |
 
@@ -192,10 +215,10 @@ running so a knock can't rewrite the target mid-timing.
 npm test
 ```
 
-128 checks covering time formatting, the chronometer state machine, settings fallbacks,
+135 checks covering time formatting, the chronometer state machine, settings fallbacks,
 SVG rendering including XML escaping of user input and key label wrapping, tick-boundary
 scheduling, OFP epoch parsing, the countdown/late transition, countdown alert thresholds,
-registry font parsing, and timeline parsing and which reminder is due.
+registry font parsing, timeline parsing and which reminder is due, and the Panel style.
 No Stream Deck or MSFS required.
 
 ## Drawing cost

@@ -11,6 +11,8 @@ export type ClockSettings = {
     timeColor?: string;
     bgColor?: string;
     bgTransparent?: boolean;
+    /** "panel" (default) or "classic", the look before Panel with the colours above. */
+    style?: string;
 } & JsonObject;
 
 /** Plugin-wide settings, shared by every placed instance. */

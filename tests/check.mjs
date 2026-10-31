@@ -9,7 +9,16 @@ import { Chrono } from "../.testbuild/chrono.js";
 import { formatChrono, formatCountdown, formatHHMM, NO_TIME } from "../.testbuild/format.js";
 import { parseEpochSeconds } from "../.testbuild/ofp.js";
 import { colorForRemaining, readThresholds } from "../.testbuild/thresholds.js";
-import { estimateTextWidth, fitFontSize, fitWrapped, renderClock, renderLines } from "../.testbuild/render.js";
+import { estimateTextWidth, fitFontSize, fitWrapped, ink, panelColors, renderClock, renderLines } from "../.testbuild/render.js";
+
+// The checks written before the Panel style describe the Classic look, which is kept as a
+// choice; these route them through it with the old argument order.
+const classicClock = (settings, target, header, value, color) =>
+    renderClock({ ...settings, style: "classic" }, target,
+        { tone: "local", caption: header, value, ...(color ? { accent: color } : {}) });
+const classicLines = (settings, target, [a, b, c]) =>
+    renderLines({ ...settings, style: "classic" }, target,
+        { tone: "timeline", caption: a.text, value: b.text, sub: c.text });
 import { DEFAULT_TIMELINE_TEXT, dLabel, parseTimeline, timelineView } from "../.testbuild/timeline.js";
 import { msUntilNextMinute } from "../.testbuild/schedule.js";
 import { Ticker } from "../.testbuild/ticker.js";
@@ -132,26 +141,26 @@ const decode = (uri) => {
     return Buffer.from(uri.slice("data:image/svg+xml;base64,".length), "base64").toString("utf8");
 };
 check("key renders at 144x144 with both lines", () => {
-    const svg = decode(renderClock({}, "key", "ZULU", "18:07"));
+    const svg = decode(classicClock({}, "key", "ZULU", "18:07"));
     assert.match(svg, /width="144" height="144"/);
     assert.ok(svg.includes(">ZULU<") && svg.includes(">18:07<"));
 });
 check("dial renders at 200x100", () => {
-    const svg = decode(renderClock({}, "dial", "SIM", "--:--"));
+    const svg = decode(classicClock({}, "dial", "SIM", "--:--"));
     assert.match(svg, /width="200" height="100"/);
 });
 check("both lines are centre-anchored", () => {
-    const svg = decode(renderClock({}, "key", "A", "B"));
+    const svg = decode(classicClock({}, "key", "A", "B"));
     assert.equal((svg.match(/text-anchor="middle"/g) ?? []).length, 2);
 });
 check("user text is XML-escaped", () => {
-    const svg = decode(renderClock({ fontFamily: 'x" onload="evil' }, "key", "A&B<C>", "00:00"));
+    const svg = decode(classicClock({ fontFamily: 'x" onload="evil' }, "key", "A&B<C>", "00:00"));
     assert.ok(svg.includes("A&amp;B&lt;C&gt;"));
     assert.ok(!svg.includes('onload="evil'), "quotes in the font name must not break out");
 });
 check("colours are applied", () => {
     const svg = decode(
-        renderClock({ bgColor: "#123456", headerColor: "#abcdef", timeColor: "#fedcba" }, "key", "H", "V"),
+        classicClock({ bgColor: "#123456", headerColor: "#abcdef", timeColor: "#fedcba" }, "key", "H", "V"),
     );
     assert.ok(svg.includes("#123456") && svg.includes("#abcdef") && svg.includes("#fedcba"));
 });
@@ -277,7 +286,7 @@ check("rows are ordered by minutes regardless of entry order", () => {
 });
 check("an override recolours only the time, not the header", () => {
     const svg = Buffer.from(
-        renderClock({ headerColor: "#111111", timeColor: "#222222" }, "key", "TO STD", "04:30",
+        classicClock({ headerColor: "#111111", timeColor: "#222222" }, "key", "TO STD", "04:30",
             "#FF3B30").slice("data:image/svg+xml;base64,".length), "base64").toString("utf8");
     assert.ok(svg.includes("#FF3B30"), "override colour must be applied");
     assert.ok(svg.includes("#111111"), "header colour must survive");
@@ -428,15 +437,15 @@ check("never returns a size below 1", () =>
 check("the rendered SVG carries the reduced size", () => {
     const decode = (uri) => Buffer.from(
         uri.slice("data:image/svg+xml;base64,".length), "base64").toString("utf8");
-    const late = decode(renderClock({}, "key", "LATE", "+12:34"));
-    const normal = decode(renderClock({}, "key", "STD", "14:32"));
+    const late = decode(classicClock({}, "key", "LATE", "+12:34"));
+    const normal = decode(classicClock({}, "key", "STD", "14:32"));
     assert.match(normal, /font-size="46"/);
     assert.ok(!/font-size="46"[^>]*>\+12:34/.test(late), "late value must not render at 46");
 });
 
 console.log("\ntransparent background");
 const svgOf = (settings, target, header, value) => Buffer.from(
-    renderClock(settings, target, header, value).slice("data:image/svg+xml;base64,".length),
+    classicClock(settings, target, header, value).slice("data:image/svg+xml;base64,".length),
     "base64").toString("utf8");
 check("opaque by default, so existing clocks are unchanged", () =>
     assert.match(svgOf({}, "key", "ZULU", "14:32"), /<rect[^>]*fill="#000000"/));
@@ -612,7 +621,7 @@ check("one line allowed means no wrapping at all", () => {
     assert.deepEqual(w.lines, ["WATER FUEL CATERING"]);
 });
 check("a wrapped label draws an extra line on the key", () => {
-    const uri = renderLines({}, "key", [
+    const uri = classicLines({}, "key", [
         { text: "D-60 DUE", color: "#FFD400" },
         { text: "WATER FUEL CATERING", color: "#FFD400" },
         { text: "STD 12:00", color: "#FFFFFF" },
@@ -622,7 +631,7 @@ check("a wrapped label draws an extra line on the key", () => {
     assert.ok(svg.includes(">WATER FUEL<") && svg.includes(">CATERING<"));
 });
 check("the dial keeps the label on one line", () => {
-    const uri = renderLines({}, "dial", [
+    const uri = classicLines({}, "dial", [
         { text: "D-60 DUE", color: "#FFD400" },
         { text: "WATER FUEL CATERING", color: "#FFD400" },
         { text: "STD 12:00", color: "#FFFFFF" },
@@ -631,7 +640,7 @@ check("the dial keeps the label on one line", () => {
     assert.equal((svg.match(/<text /g) ?? []).length, 3);
 });
 check("three-line render escapes text and draws all lines", () => {
-    const uri = renderLines({}, "dial", [
+    const uri = classicLines({}, "dial", [
         { text: "NEXT D-35", color: "#9AA0A6" },
         { text: "FUEL & <WATER>", color: "#FFFFFF" },
         { text: "in 04:12", color: "#FFFFFF" },
@@ -640,6 +649,44 @@ check("three-line render escapes text and draws all lines", () => {
     assert.ok(svg.includes("FUEL &amp; &lt;WATER&gt;"));
     assert.equal((svg.match(/<text /g) ?? []).length, 3);
     assert.ok(svg.includes('width="200"'));
+});
+
+console.log("\npanel style");
+const panelSvg = (uri) => Buffer.from(uri.split(",")[1], "base64").toString("utf8");
+check("panel is the default and draws the tone's band and caption", () => {
+    const svg = panelSvg(renderClock({}, "key", { tone: "zulu", caption: "ZULU", value: "18:07" }));
+    assert.ok(svg.includes(panelColors("zulu").band) && svg.includes(panelColors("zulu").deep));
+    assert.ok(svg.includes(">ZULU<") && svg.includes(">18:07<"));
+    assert.ok(!svg.includes("stroke="), "no ring unless active");
+});
+check("a crossed threshold rings the section and colours the time", () => {
+    const svg = panelSvg(renderClock({}, "dial",
+        { tone: "countdown", caption: "TO STD", value: "04:00", active: true, accent: "#FF8A00" }));
+    assert.match(svg, /stroke="#FF8A00"/);
+    assert.match(svg, /fill="#FF8A00">04:00</);
+});
+check("a due reminder fills the band with the Due colour, caption in black", () => {
+    const svg = panelSvg(renderLines({}, "dial", { tone: "timeline", caption: "D-15 DUE",
+        value: "DEPARTURE BRIEF", sub: "STD 15:00", active: true, alert: true, accent: "#FFD400" }));
+    assert.match(svg, /height="24" rx="14" fill="#FFD400"/);
+    assert.match(svg, /fill="#0A0A0A">D-15 DUE</);
+});
+check("caption ink follows contrast", () => {
+    assert.equal(ink("#FFD400"), "#0A0A0A");
+    assert.equal(ink("#1A1A60"), "#FFFFFF");
+});
+check("a long caption shrinks to 10px, then is cut with an ellipsis", () => {
+    const svg = panelSvg(renderClock({}, "key", { tone: "local", caption: "A VERY LONG CUSTOM CAPTION", value: "12:00" }));
+    assert.match(svg, /font-size="10"[^>]*>A VERY LONG CUST…</);
+});
+check("transparent drops the black behind the corners but keeps the panel", () => {
+    const svg = panelSvg(renderClock({ bgTransparent: true }, "dial", { tone: "sim", caption: "SIM", value: "12:00" }));
+    assert.ok(!svg.includes('fill="#000000"'));
+    assert.ok(svg.includes(panelColors("sim").deep));
+});
+check("the chosen font falls back to sans-serif, never serif", () => {
+    const svg = panelSvg(renderClock({ fontFamily: "Nope" }, "key", { tone: "local", caption: "L", value: "1" }));
+    assert.ok(svg.includes('font-family="Nope, Arial, sans-serif"'));
 });
 
 console.log(`\n${passed} checks passed\n`);
