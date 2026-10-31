@@ -1,5 +1,7 @@
 # Sim Clock
 
+From ACMS Digital Systems, makers of [Datalink Pro](https://acmsdigital.com): a Windows app that puts a virtual ACARS terminal in your MSFS 2020 or 2024 cockpit, with an automated airline dispatch office on the other end.
+
 A Stream Deck plugin with two actions, both working on keys and on Stream Deck + dials.
 Place either as many times as you like; each instance is configured independently.
 
