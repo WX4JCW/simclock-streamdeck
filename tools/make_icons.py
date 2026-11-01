@@ -7,7 +7,7 @@ things in each slot:
 
 - Icon          256 x 256 and 512 x 512, shown in Stream Deck's preferences. A badge:
                 the clock on its own dark rounded-rect ground.
-- CategoryIcon  28 x 28 and 56 x 56, shown beside the "Sim Clock" group in the actions
+- CategoryIcon  28 x 28 and 56 x 56, shown beside the "MSFS SimClock" group in the actions
                 list. Must be monochromatic #FFFFFF on a transparent background, so it
                 is the bare clock glyph with no ground, and drawn heavier to survive
                 being displayed at 28 px.

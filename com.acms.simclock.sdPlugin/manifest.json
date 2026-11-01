@@ -1,10 +1,10 @@
 {
     "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
-    "Name": "Sim Clock",
-    "Version": "1.1.0.7",
+    "Name": "MSFS SimClock",
+    "Version": "1.1.0.8",
     "Author": "ACMS Digital Systems",
     "Description": "Flight clocks and a SimBrief departure timeline for Microsoft Flight Simulator, on keys and dials.",
-    "Category": "Sim Clock",
+    "Category": "MSFS SimClock",
     "CategoryIcon": "imgs/plugin/category",
     "Icon": "imgs/plugin/icon",
     "UUID": "com.acms.simclock",
@@ -32,7 +32,7 @@
     ],
     "Actions": [
         {
-            "Name": "Sim Clock",
+            "Name": "SimClock",
             "UUID": "com.acms.simclock.clock",
             "Icon": "imgs/actions/clock/icon",
             "Tooltip": "Show PC time, real Zulu, or sim Zulu.",

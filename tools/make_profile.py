@@ -1,4 +1,4 @@
-# Builds the ready-made "SimClock" profile for the Stream Deck + XL, packed into the plugin:
+# Builds the ready-made "MSFS SimClock" profile for the Stream Deck + XL, packed into the plugin:
 #   com.acms.simclock.sdPlugin/profiles/SimClock-PlusXL.streamDeckProfile
 # Only this plugin's own actions: the six dials hold LOCAL, ZULU, SIM, STD, TO STD and the Departure
 # Timeline, and the keys are left blank (owner, 2026-10-31: "No other buttons or stuff just whats
@@ -42,18 +42,18 @@ def action(n, name, kind, settings):
 # touched, so they are written here for the alerts to work out of the box.
 ALERTS = {"warn1Min": "10", "warn2Min": "5", "warn3Min": "0"}
 DIALS = [
-    ("Sim Clock", "clock", {"source": "pc"}),
-    ("Sim Clock", "clock", {"source": "zulu"}),
-    ("Sim Clock", "clock", {"source": "sim"}),
-    ("Sim Clock", "clock", {"source": "std"}),
-    ("Sim Clock", "clock", {"source": "tostd", **ALERTS}),
+    ("SimClock", "clock", {"source": "pc"}),
+    ("SimClock", "clock", {"source": "zulu"}),
+    ("SimClock", "clock", {"source": "sim"}),
+    ("SimClock", "clock", {"source": "std"}),
+    ("SimClock", "clock", {"source": "tostd", **ALERTS}),
     ("Departure Timeline", "timeline", {}),
 ]
 dials = {f"{col},0": action(100 + col, name, kind, s) for col, (name, kind, s) in enumerate(DIALS)}
 
 root = {
     "Device": {"Model": PLUS_XL_MODEL, "UUID": ""},
-    "Name": "SimClock",
+    "Name": "MSFS SimClock",
     "Pages": {"Current": PAGE_ID.lower(), "Default": PAGE_ID.lower(), "Pages": [PAGE_ID.lower()]},
     "Version": "3.0",
 }

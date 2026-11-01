@@ -1,4 +1,4 @@
-# SimClock Stream Deck plugin
+# MSFS SimClock Stream Deck plugin
 
 ## Rulings
 

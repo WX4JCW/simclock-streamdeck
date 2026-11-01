@@ -1,5 +1,5 @@
 """
-Sim Clock bridge -- serves the Microsoft Flight Simulator clock over localhost HTTP.
+MSFS SimClock bridge -- serves the Microsoft Flight Simulator clock over localhost HTTP.
 
 Stream Deck plugins cannot call SimConnect, so this process reads the sim's clock and
 publishes it on 127.0.0.1:47600. The plugin polls once a second and extrapolates between
@@ -236,7 +236,7 @@ def main() -> None:
     threading.Thread(
         target=idle_watchdog, args=(server, last_request, stop), daemon=True
     ).start()
-    print(f"Sim Clock bridge listening on http://{HOST}:{PORT}/time  (Ctrl+C to stop)")
+    print(f"MSFS SimClock bridge listening on http://{HOST}:{PORT}/time  (Ctrl+C to stop)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
