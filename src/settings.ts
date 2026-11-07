@@ -39,8 +39,8 @@ export const DEFAULTS = {
 /** Header shown when the user hasn't typed their own. */
 const SOURCE_LABELS: Record<TimeSource, string> = {
     pc: "LOCAL",
-    zulu: "ZULU",
-    sim: "SIM",
+    zulu: "REAL ZULU",
+    sim: "SIM ZULU",
     std: "STD",
     tostd: "TO STD",
     eta: "ETA",

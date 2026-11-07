@@ -47,8 +47,8 @@ That writes `dist/com.acms.simclock.streamDeckPlugin` — a plain ZIP containing
 ## Ready-made profile
 
 The plugin carries an **MSFS SimClock** profile for the Stream Deck + XL. Four dials, three of
-them switched by turning: LOCAL / ZULU / SIM, STD / TO STD (alerts at 10, 5 and 0 minutes),
-ETA / TO ETA, and the Departure Timeline. The last two dials and the keys are left blank. It is `com.acms.simclock.sdPlugin/profiles/SimClock-PlusXL.streamDeckProfile`; open it
+them switched by turning: LOCAL / REAL ZULU / SIM ZULU, STD / TO STD (alerts at 10, 5 and 0
+minutes), ETA / TO ETA, and the Departure Timeline. The last two dials and the keys are left blank. It is `com.acms.simclock.sdPlugin/profiles/SimClock-PlusXL.streamDeckProfile`; open it
 to add the profile. `python tools/make_profile.py` rebuilds it after the version changes.
 
 ## Settings
@@ -60,7 +60,7 @@ Per instance of **SimClock**. The timeline has its own, listed further down.
 | Time Source | PC Time | PC Time / Zulu / Sim Zulu / STD / Countdown to STD / ETA / Countdown to ETA |
 | Turn to switch | _(none)_ | Dials only. Tick two or more clocks and turning steps through them; see below |
 | Departure name | STD | STD / PUSH / SOBT / OUT / DEP; names the departure clock and its countdown (PUSH, TO PUSH) |
-| Header | auto | Blank shows `LOCAL` / `ZULU` / `SIM`; type anything else, e.g. `KJFK` |
+| Header | auto | Blank shows `LOCAL` / `REAL ZULU` / `SIM ZULU`; type anything else, e.g. `KJFK` |
 | Style | PANEL | PANEL or CLASSIC; see Style below |
 | Font | Segoe UI | Any font family installed on this PC |
 | Header Color | `#9AA0A6` | CLASSIC only |
@@ -133,8 +133,8 @@ to real time — a wrong number under a `SIM` header is worse than no number.
 Sim Zulu is the simulator's own UTC. It diverges from real Zulu as soon as you set a
 departure time or compress time; that's the point of having both.
 
-When the sim runs faster or slower than real time, the SIM clock's header says so: `SIM 4X`,
-`SIM 0.5X`. At normal speed it shows nothing extra. The bridge's rate is measured, so it is
+When the sim runs faster or slower than real time, the SIM clock's header says so: `SIM ZULU 4X`,
+`SIM ZULU 0.5X`. At normal speed it shows nothing extra. The bridge's rate is measured, so it is
 snapped to the nearest MSFS rate (a power of two) to keep it steady.
 
 ## SimBrief
@@ -226,7 +226,7 @@ Tick two or more clocks under **Turn to switch** and one dial holds them all: ea
 moves to the next, in the order the panel lists them, wrapping at both ends. This takes the
 place of Time Source. The dial remembers where it was left, across page switches and
 restarts. Each clock uses its own automatic header, since one typed name cannot fit them
-all, and keeps its own behaviour: alerts on the departure countdown, `LATE`, `SIM 4X`, a
+all, and keeps its own behaviour: alerts on the departure countdown, `LATE`, `SIM ZULU 4X`, a
 press reloading SimBrief on the SimBrief clocks.
 
 On such a dial the chronometer is set by **pressing and turning**; see below.

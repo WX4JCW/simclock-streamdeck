@@ -326,7 +326,7 @@ export class ClockAction extends SingletonAction<ClockSettings> {
                   ? formatHHMM(simBriefFeed.eta, source)
                   : formatHHMM(timeFor(source), source);
 
-        // The SIM clock says when the sim runs faster or slower than real time ("SIM 4X").
+        // The SIM clock says when the sim runs faster or slower than real time ("SIM ZULU 4X").
         const caption = resolveHeader(state.settings, defaultHeader(source, state.settings));
         const rate = source === "sim" ? simRateLabel(simFeed.rate) : "";
 

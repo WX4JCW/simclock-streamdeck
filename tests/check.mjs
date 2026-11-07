@@ -123,13 +123,13 @@ check("rejects an unknown source", () =>
     assert.equal(resolveSource({ source: "garbage" }), "pc"));
 check("header defaults per source", () => {
     assert.equal(resolveHeader({}, defaultHeader("pc")), "LOCAL");
-    assert.equal(resolveHeader({}, defaultHeader("zulu")), "ZULU");
-    assert.equal(resolveHeader({}, defaultHeader("sim")), "SIM");
+    assert.equal(resolveHeader({}, defaultHeader("zulu")), "REAL ZULU");
+    assert.equal(resolveHeader({}, defaultHeader("sim")), "SIM ZULU");
 });
 check("custom header wins", () =>
     assert.equal(resolveHeader({ header: "KJFK" }, defaultHeader("zulu")), "KJFK"));
 check("blank header falls back", () =>
-    assert.equal(resolveHeader({ header: "   " }, defaultHeader("zulu")), "ZULU"));
+    assert.equal(resolveHeader({ header: "   " }, defaultHeader("zulu")), "REAL ZULU"));
 check("font defaults to Segoe UI", () => assert.equal(resolveFont({}), "Segoe UI"));
 check("custom font wins", () =>
     assert.equal(resolveFont({ fontFamily: "Consolas" }), "Consolas"));
