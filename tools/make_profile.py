@@ -1,8 +1,9 @@
 # Builds the ready-made "MSFS SimClock" profile for the Stream Deck + XL, packed into the plugin:
 #   com.acms.simclock.sdPlugin/profiles/SimClock-PlusXL.streamDeckProfile
-# Only this plugin's own actions: the six dials hold LOCAL, ZULU, SIM, STD, TO STD and the Departure
-# Timeline, and the keys are left blank (owner, 2026-10-31: "No other buttons or stuff just whats
-# relevant so we can package those profiles").
+# Only this plugin's own actions: four dials (LOCAL / ZULU / SIM, STD / TO STD, ETA / TO ETA, each
+# switched by turning, and the Departure Timeline), the last two dials and the keys left blank
+# (owner, 2026-10-31: "No other buttons or stuff just whats relevant so we can package those
+# profiles").
 #
 # Format, copied from the ChasePlane plugin's profile, which imported cleanly: a zip holding
 # <PROFILE>.sdProfile/manifest.json (Device model with an empty UUID = any device of that model, Name,
@@ -41,12 +42,12 @@ def action(n, name, kind, settings):
 # Countdown alerts at 10, 5 and 0 minutes; the panel shows these as defaults but only saves them when
 # touched, so they are written here for the alerts to work out of the box.
 ALERTS = {"warn1Min": "10", "warn2Min": "5", "warn3Min": "0"}
+# Turning a dial steps through its list (owner, 2026-11-07: consolidate the clocks so the ETA fits),
+# which leaves the last two dials free.
 DIALS = [
-    ("SimClock", "clock", {"source": "pc"}),
-    ("SimClock", "clock", {"source": "zulu"}),
-    ("SimClock", "clock", {"source": "sim"}),
-    ("SimClock", "clock", {"source": "std"}),
-    ("SimClock", "clock", {"source": "tostd", **ALERTS}),
+    ("SimClock", "clock", {"source": "pc", "cycle": ["pc", "zulu", "sim"]}),
+    ("SimClock", "clock", {"source": "std", "cycle": ["std", "tostd"], **ALERTS}),
+    ("SimClock", "clock", {"source": "eta", "cycle": ["eta", "toeta"]}),
     ("Departure Timeline", "timeline", {}),
 ]
 dials = {f"{col},0": action(100 + col, name, kind, s) for col, (name, kind, s) in enumerate(DIALS)}

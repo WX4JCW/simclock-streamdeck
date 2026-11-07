@@ -53,6 +53,24 @@
         </sdpi-select>
     </sdpi-item>
 
+    <sdpi-item label="Turn to switch">
+        <sdpi-checkbox-list setting="cycle" columns="2">
+            <option value="pc">PC Time</option>
+            <option value="zulu">Zulu</option>
+            <option value="sim">Sim Zulu</option>
+            <option value="std">STD</option>
+            <option value="tostd">Countdown to STD</option>
+            <option value="eta">ETA</option>
+            <option value="toeta">Countdown to ETA</option>
+        </sdpi-checkbox-list>
+    </sdpi-item>
+
+    <p class="note">
+        Dials only. Tick two or more and turning the dial steps through them, in place of
+        Time Source; each shows its own automatic header. Press and turn to set the
+        chronometer.
+    </p>
+
     <sdpi-item label="Header">
         <sdpi-textfield setting="header" placeholder="Auto (LOCAL / ZULU / SIM / STD / ETA)" maxlength="10"></sdpi-textfield>
     </sdpi-item>

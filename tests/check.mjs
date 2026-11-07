@@ -24,10 +24,13 @@ import { msUntilNextMinute } from "../.testbuild/schedule.js";
 import { Ticker } from "../.testbuild/ticker.js";
 import { baseFamily, cleanFontName, parseRegistryFonts } from "../.testbuild/fonts.js";
 import {
+    cycleSources,
     defaultHeader,
+    isCycling,
     LATE_LABEL,
     needsSimBrief,
     needsSimBridge,
+    nextCycleIndex,
     resolveColor,
     resolveFont,
     resolveHeader,
@@ -266,6 +269,34 @@ check("ETA sources are accepted and get their own auto headers", () => {
     assert.equal(resolveSource({ source: "toeta" }), "toeta");
     assert.equal(resolveHeader({}, defaultHeader("eta")), "ETA");
     assert.equal(resolveHeader({}, defaultHeader("toeta")), "TO ETA");
+});
+
+console.log("\nturn to switch");
+check("fewer than two ticked is no list: the single source shows", () => {
+    assert.equal(isCycling({ source: "zulu", cycle: ["sim"] }), false);
+    assert.equal(resolveSource({ source: "zulu", cycle: ["sim"] }), "zulu");
+    assert.equal(resolveSource({ source: "zulu", cycle: [] }), "zulu");
+});
+check("the list keeps panel order whatever order it was ticked in", () =>
+    assert.deepEqual(cycleSources({ cycle: ["sim", "pc", "zulu"] }), ["pc", "zulu", "sim"]));
+check("unknown entries are dropped from the list", () =>
+    assert.deepEqual(cycleSources({ cycle: ["pc", "garbage", "eta"] }), ["pc", "eta"]));
+check("the saved position picks the clock, replacing Time Source", () => {
+    const s = { source: "std", cycle: ["pc", "zulu", "sim"], cycleIndex: 2 };
+    assert.equal(resolveSource(s), "sim");
+    assert.equal(resolveSource({ ...s, cycleIndex: undefined }), "pc");
+    assert.equal(resolveSource({ ...s, cycleIndex: 7 }), "zulu", "an index left over from a longer list wraps");
+});
+check("turning steps through the list and wraps at both ends", () => {
+    const s = { cycle: ["pc", "zulu", "sim"], cycleIndex: 2 };
+    assert.equal(nextCycleIndex(s, 1), 0);
+    assert.equal(nextCycleIndex({ ...s, cycleIndex: 0 }, -1), 2);
+    assert.equal(nextCycleIndex({ ...s, cycleIndex: 0 }, 2), 2);
+    assert.equal(nextCycleIndex({ source: "pc" }, 1), 0, "no list, nothing to step");
+});
+check("a switching dial ignores a typed header and uses the auto names", () => {
+    assert.equal(resolveHeader({ header: "SOBT", cycle: ["std", "tostd"] }, defaultHeader("std")), "STD");
+    assert.equal(resolveHeader({ header: "SOBT" }, defaultHeader("std")), "SOBT");
 });
 
 console.log("\nsim rate");

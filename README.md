@@ -46,9 +46,9 @@ That writes `dist/com.acms.simclock.streamDeckPlugin` — a plain ZIP containing
 
 ## Ready-made profile
 
-The plugin carries an **MSFS SimClock** profile for the Stream Deck + XL: LOCAL, ZULU, SIM, STD,
-TO STD (alerts at 10, 5 and 0 minutes) and the Departure Timeline on the six dials, keys left
-blank. It is `com.acms.simclock.sdPlugin/profiles/SimClock-PlusXL.streamDeckProfile`; open it
+The plugin carries an **MSFS SimClock** profile for the Stream Deck + XL. Four dials, three of
+them switched by turning: LOCAL / ZULU / SIM, STD / TO STD (alerts at 10, 5 and 0 minutes),
+ETA / TO ETA, and the Departure Timeline. The last two dials and the keys are left blank. It is `com.acms.simclock.sdPlugin/profiles/SimClock-PlusXL.streamDeckProfile`; open it
 to add the profile. `python tools/make_profile.py` rebuilds it after the version changes.
 
 ## Settings
@@ -58,6 +58,7 @@ Per instance of **SimClock**. The timeline has its own, listed further down.
 | Setting | Default | Notes |
 |---|---|---|
 | Time Source | PC Time | PC Time / Zulu / Sim Zulu / STD / Countdown to STD / ETA / Countdown to ETA |
+| Turn to switch | _(none)_ | Dials only. Tick two or more clocks and turning steps through them; see below |
 | Header | auto | Blank shows `LOCAL` / `ZULU` / `SIM`; type anything else, e.g. `KJFK` |
 | Style | PANEL | PANEL or CLASSIC; see Style below |
 | Font | Segoe UI | Any font family installed on this PC |
@@ -213,13 +214,24 @@ A live timeline needs sim time, but only once there is an OFP to count down to �
 scheduled off-block it reads `NO OFP` whether the bridge is up or not, so a timeline left
 on the deck between flights does not hold `simclock_bridge.exe` open.
 
+## Turn to switch (dials)
+
+Tick two or more clocks under **Turn to switch** and one dial holds them all: each detent
+moves to the next, in the order the panel lists them, wrapping at both ends. This takes the
+place of Time Source. The dial remembers where it was left, across page switches and
+restarts. Each clock uses its own automatic header, since one typed name cannot fit them
+all, and keeps its own behaviour: alerts on the departure countdown, `LATE`, `SIM 4X`, a
+press reloading SimBrief on the SimBrief clocks.
+
+On such a dial the chronometer is set by **pressing and turning**; see below.
+
 ## Chronometer (dials)
 
 On a Stream Deck + dial:
 
 | Input | Action |
 |---|---|
-| Rotate | Set the target, one minute per detent (only while idle) |
+| Rotate | Set the target, one minute per detent (only while idle). On a Turn to switch dial, press and turn |
 | Press | Start / stop |
 | Long press (0.6 s) | Reset, returning to the clock |
 | Touch | Start / stop |
@@ -229,7 +241,9 @@ countdown a press reloads SimBrief instead, and rotation is inert -- a dialled-i
 target would otherwise make the chronometer active and hijack the display.
 
 Set a target and it counts down; start from zero and it counts up. While active the
-chronometer takes over the same two lines — `CHR` over `MM:SS`. Rotation is ignored while
+chronometer takes over the same two lines — `CHR` over `MM:SS` — and owns the dial: on a Turn
+to switch dial a plain turn no longer switches clocks until a long press resets it. Letting
+go after a press-and-turn does not start it. Rotation is ignored while
 running so a knock can't rewrite the target mid-timing.
 
 ## Tests

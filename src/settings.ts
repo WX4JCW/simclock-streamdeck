@@ -13,6 +13,10 @@ export type ClockSettings = {
     bgTransparent?: boolean;
     /** "panel" (default) or "classic", the look before Panel with the colours above. */
     style?: string;
+    /** Clocks a dial switches between when turned; two or more replace `source`. */
+    cycle?: string[];
+    /** Which of `cycle` is showing, kept so the dial comes back where it was left. */
+    cycleIndex?: number;
 } & JsonObject;
 
 /** Plugin-wide settings, shared by every placed instance. */
@@ -44,9 +48,42 @@ const SOURCE_LABELS: Record<TimeSource, string> = {
 /** Replaces the TO STD label once scheduled off-block has passed. */
 export const LATE_LABEL = "LATE";
 
-const VALID_SOURCES = new Set<string>(["pc", "zulu", "sim", "std", "tostd", "eta", "toeta"]);
+/** Every source, in the order the panel lists them and a dial steps through them. */
+const SOURCE_ORDER: TimeSource[] = ["pc", "zulu", "sim", "std", "tostd", "eta", "toeta"];
+const VALID_SOURCES = new Set<string>(SOURCE_ORDER);
 
+/**
+ * The clocks a dial switches between, in panel order whatever order they were ticked in.
+ * Fewer than two is no list at all: the dial shows `source` as it always did.
+ */
+export function cycleSources(settings: ClockSettings): TimeSource[] {
+    const ticked = Array.isArray(settings.cycle) ? new Set(settings.cycle) : new Set();
+    const list = SOURCE_ORDER.filter((s) => ticked.has(s));
+    return list.length >= 2 ? list : [];
+}
+
+/** True when this instance switches between clocks rather than showing one. */
+export function isCycling(settings: ClockSettings): boolean {
+    return cycleSources(settings).length > 0;
+}
+
+/** Position in the list after turning `ticks` detents, wrapping at both ends. */
+export function nextCycleIndex(settings: ClockSettings, ticks: number): number {
+    const n = cycleSources(settings).length;
+    if (n === 0) return 0;
+    const at = cycleIndexOf(settings, n);
+    return (((at + ticks) % n) + n) % n;
+}
+
+function cycleIndexOf(settings: ClockSettings, n: number): number {
+    const i = settings.cycleIndex;
+    return typeof i === "number" && Number.isInteger(i) ? ((i % n) + n) % n : 0;
+}
+
+/** The source showing now: the current pick from the list, or the single `source`. */
 export function resolveSource(settings: ClockSettings): TimeSource {
+    const list = cycleSources(settings);
+    if (list.length > 0) return list[cycleIndexOf(settings, list.length)] ?? DEFAULTS.source;
     const s = settings.source;
     return typeof s === "string" && VALID_SOURCES.has(s) ? (s as TimeSource) : DEFAULTS.source;
 }
@@ -61,6 +98,8 @@ export function defaultHeader(source: TimeSource): string {
  * named the key themselves, we don't rename it out from under them.
  */
 export function resolveHeader(settings: ClockSettings, fallback: string): string {
+    // One typed name cannot fit several clocks, so a dial that switches uses the auto names.
+    if (isCycling(settings)) return fallback;
     const custom = settings.header?.trim();
     return custom && custom.length > 0 ? custom : fallback;
 }

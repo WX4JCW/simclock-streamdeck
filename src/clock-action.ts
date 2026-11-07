@@ -19,9 +19,11 @@ import { renderClock, type Look, type Tone } from "./render.js";
 import { msUntilNextMinute } from "./schedule.js";
 import {
     defaultHeader,
+    isCycling,
     LATE_LABEL,
     needsSimBrief,
     needsSimBridge,
+    nextCycleIndex,
     resolveHeader,
     resolveSource,
     type ClockSettings,
@@ -58,6 +60,8 @@ type InstanceState = {
     lastDrawn: string;
     chrono: Chrono | undefined;
     pressedAt: number | undefined;
+    /** Set when the dial was turned while held, so releasing it doesn't start the chronometer. */
+    turnedWhilePressed: boolean;
 };
 
 @action({ UUID: "com.acms.simclock.clock" })
@@ -104,11 +108,25 @@ export class ClockAction extends SingletonAction<ClockSettings> {
     }
 
     /**
-     * Rotation drives the chronometer, so it must be fully inert on a SimBrief clock --
-     * not merely unused. A dialled-in target makes the chronometer "active", which would
-     * hijack the display and show SET over a countdown that can never run.
+     * On a dial that switches between clocks, a plain turn moves to the next one and the
+     * chronometer is set by pressing and turning. Once a chronometer is set or running it
+     * owns the dial until a long press resets it, so a turn can't switch it out of sight.
+     * A single-clock dial keeps the plain turn for the chronometer.
+     *
+     * Rotation into the chronometer must be fully inert on a SimBrief clock -- not merely
+     * unused. A dialled-in target makes the chronometer "active", which would hijack the
+     * display and show SET over a countdown that can never run.
      */
     override async onDialRotate(ev: DialRotateEvent<ClockSettings>): Promise<void> {
+        const state = this.#stateFor(ev.action.id);
+        if (ev.payload.pressed) state.turnedWhilePressed = true;
+
+        const chronoActive = state.chrono?.isActive() === true;
+        if (isCycling(state.settings) && !ev.payload.pressed && !chronoActive) {
+            await this.#switchClock(ev.action, state, ev.payload.ticks);
+            return;
+        }
+
         if (this.#isSimBriefInstance(ev.action.id)) return;
 
         this.#chronoFor(ev.action.id).rotate(ev.payload.ticks);
@@ -117,13 +135,21 @@ export class ClockAction extends SingletonAction<ClockSettings> {
     }
 
     override onDialDown(ev: DialDownEvent<ClockSettings>): void {
-        this.#stateFor(ev.action.id).pressedAt = performance.now();
+        const state = this.#stateFor(ev.action.id);
+        state.pressedAt = performance.now();
+        state.turnedWhilePressed = false;
     }
 
     override async onDialUp(ev: DialUpEvent<ClockSettings>): Promise<void> {
         const state = this.#stateFor(ev.action.id);
         const held = state.pressedAt !== undefined ? performance.now() - state.pressedAt : 0;
         state.pressedAt = undefined;
+
+        // A press-and-turn was setting the chronometer; letting go is not a start.
+        if (state.turnedWhilePressed) {
+            state.turnedWhilePressed = false;
+            return;
+        }
 
         // On a SimBrief clock every press is a refresh -- long or short. Giving the hold
         // a second meaning would be a mode the user has to remember for no gain.
@@ -151,6 +177,19 @@ export class ClockAction extends SingletonAction<ClockSettings> {
         this.#chronoFor(ev.action.id).toggle();
         this.onCadenceChanged?.();
         await this.render(ev.action);
+    }
+
+    /**
+     * Step to another clock in the dial's list. The position is saved with the settings,
+     * so the dial comes back on the same clock after a page switch or a restart.
+     */
+    async #switchClock(target: ClockInstance, state: InstanceState, ticks: number): Promise<void> {
+        state.settings = { ...state.settings, cycleIndex: nextCycleIndex(state.settings, ticks) };
+        state.revision++;
+        await target.setSettings(state.settings);
+        this.#refreshFeedsFor(target.id);
+        this.onCadenceChanged?.();
+        await this.render(target);
     }
 
     /** True when this instance reads an OFP, and so answers presses with a refresh. */
@@ -315,6 +354,7 @@ export class ClockAction extends SingletonAction<ClockSettings> {
                 lastDrawn: "",
                 chrono: undefined,
                 pressedAt: undefined,
+                turnedWhilePressed: false,
             };
             this.#state.set(id, state);
         }
