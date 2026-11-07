@@ -27,26 +27,71 @@ function hsl(h: number, s: number, l: number): string {
     return `#${[0, 8, 4].map((n) => Math.round(f(n) * 255).toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** Key fill (deep), caption band, main text and "on" ring for a tone. */
-export function panelColors(tone: Tone): { deep: string; band: string; text: string; on: string } {
-    const [h, s] = TONES[tone];
-    return { deep: hsl(h, s * 0.8, 11), band: hsl(h, s, 52), text: hsl(h, s, 78), on: hsl(h, s, 60) };
+/**
+ * The key body: plain charcoal, with the colour only in the band and the text (the deck's
+ * look since Camera Deck 0.1.0.33; owner, 2026-11-07: "A without glow").
+ */
+const BODY = "#141416";
+
+/** Caption text on the band: always white (owner, 2026-11-07). */
+const CAPTION = "#FFFFFF";
+
+/** White captions need at least 3:1 contrast with their band. */
+const WHITE_MIN_CONTRAST = 3;
+
+/** "#rgb" or "#rrggbb" as 0..255 channels. */
+function channels(color: string): [number, number, number] {
+    const hex = color.length === 4 ? color.replace(/[0-9a-f]/gi, (c) => c + c) : color;
+    const [r = 0, g = 0, b = 0] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    return [r, g, b];
 }
 
-/** Black or white, whichever reads better on `background` (WCAG contrast). */
-export function ink(background: string): string {
-    const hex = background.length === 4 ? background.replace(/[0-9a-f]/gi, (c) => c + c) : background;
+/** Relative luminance (WCAG) of a colour. */
+function luminance(color: string): number {
     const lin = (v: number) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-    const [r = 0, g = 0, b = 0] = [1, 3, 5].map((i) => lin(parseInt(hex.slice(i, i + 2), 16) / 255));
-    const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    return (l + 0.05) / 0.05 >= 1.05 / (l + 0.05) ? "#0A0A0A" : "#FFFFFF";
+    const [r, g, b] = channels(color).map((v) => lin(v / 255)) as [number, number, number];
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Hue (0..360) and saturation (0..100) of a colour, for the Due colour the user picks. */
+function hueSat(color: string): [number, number] {
+    const [r, g, b] = channels(color).map((v) => v / 255) as [number, number, number];
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const d = max - min;
+    if (d === 0) return [0, 0];
+    const l = (max + min) / 2;
+    const s = d / (1 - Math.abs(2 * l - 1));
+    const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [(h * 60 + 360) % 360, s * 100];
+}
+
+/**
+ * Band at 42% lightness, darkened a point at a time while white would still read under 3:1
+ * on it, which takes yellows and ambers down to a deep gold. Stops at 24%.
+ */
+function band(h: number, s: number): string {
+    let l = 42;
+    while (l > 24 && 1.05 / (luminance(hsl(h, s, l)) + 0.05) < WHITE_MIN_CONTRAST) l -= 1;
+    return hsl(h, s, l);
+}
+
+/** Key body (deep), caption band, main text and "on" ring for a tone. */
+export function panelColors(tone: Tone): { deep: string; band: string; text: string; on: string } {
+    const [h, s] = TONES[tone];
+    return { deep: BODY, band: band(h, s), text: hsl(h, s, 78), on: hsl(h, s, 60) };
+}
+
+/** The band for any colour, with the same recipe as the tones: the Due colour's band. */
+export function bandFor(color: string): string {
+    return band(...hueSat(color));
 }
 
 /**
  * What one key or dial section shows: a caption in the band, the value in the middle, an
  * optional status line at the bottom. `active` draws the ring; `accent` replaces the
  * tone's ring colour (a countdown threshold, the timeline's Due colour); `alert` also
- * fills the band with the accent, for a reminder that has fallen due.
+ * fills the band with a deep shade of the accent, for a reminder that has fallen due.
  */
 export type Look = {
     tone: Tone;
@@ -138,13 +183,13 @@ function fontStack(settings: ClockSettings): string {
 }
 
 /**
- * The Panel frame: tinted key, solid caption band, ring when active. Only flat shapes:
+ * The Panel frame: charcoal key, solid caption band, ring when active. Only flat shapes:
  * Stream Deck's SVG renderer did not draw blur or gradients in tests. Transparent drops
  * only the black behind the rounded corners, so the Action Wheel shows through there.
  */
 function frame(settings: ClockSettings, target: Target, look: Look, font: string): { svg: string; colors: Colors } {
     const c = panelColors(look.tone);
-    const band = look.alert && look.accent ? look.accent : c.band;
+    const fill = look.alert && look.accent ? bandFor(look.accent) : c.band;
     const on = look.accent ?? c.on;
     const back = settings.bgTransparent === true;
     let svg: string;
@@ -152,15 +197,15 @@ function frame(settings: ClockSettings, target: Target, look: Look, font: string
         svg =
             (back ? "" : `<rect width="144" height="144" fill="#000000"/>`) +
             `<rect width="144" height="144" rx="18" fill="${c.deep}"/>` +
-            `<rect width="144" height="30" rx="18" fill="${band}"/><rect y="16" width="144" height="14" fill="${band}"/>` +
-            captionText(72, 21, look.caption, ink(band), font, 124, 15, 10) +
+            `<rect width="144" height="30" rx="18" fill="${fill}"/><rect y="16" width="144" height="14" fill="${fill}"/>` +
+            captionText(72, 21, look.caption, CAPTION, font, 124, 15, 10) +
             (look.active ? `<rect x="3" y="3" width="138" height="138" rx="16" fill="none" stroke="${on}" stroke-width="5"/>` : "");
     } else {
         svg =
             (back ? "" : `<rect width="200" height="100" fill="#000000"/>`) +
             `<rect x="2" y="2" width="196" height="96" rx="14" fill="${c.deep}"/>` +
-            `<rect x="2" y="2" width="196" height="24" rx="14" fill="${band}"/><rect x="2" y="14" width="196" height="12" fill="${band}"/>` +
-            captionText(100, 19, look.caption, ink(band), font, 180, 14, 12) +
+            `<rect x="2" y="2" width="196" height="24" rx="14" fill="${fill}"/><rect x="2" y="14" width="196" height="12" fill="${fill}"/>` +
+            captionText(100, 19, look.caption, CAPTION, font, 180, 14, 12) +
             (look.active ? `<rect x="4" y="4" width="192" height="92" rx="12" fill="none" stroke="${on}" stroke-width="3"/>` : "");
     }
     return { svg, colors: c };

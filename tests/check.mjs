@@ -9,7 +9,7 @@ import { Chrono } from "../.testbuild/chrono.js";
 import { formatChrono, formatCountdown, formatHHMM, NO_TIME } from "../.testbuild/format.js";
 import { parseEpochSeconds } from "../.testbuild/ofp.js";
 import { colorForRemaining, readThresholds } from "../.testbuild/thresholds.js";
-import { estimateTextWidth, fitFontSize, fitWrapped, ink, panelColors, renderClock, renderLines } from "../.testbuild/render.js";
+import { estimateTextWidth, fitFontSize, fitWrapped, bandFor, panelColors, renderClock, renderLines } from "../.testbuild/render.js";
 
 // The checks written before the Panel style describe the Classic look, which is kept as a
 // choice; these route them through it with the old argument order.
@@ -665,15 +665,28 @@ check("a crossed threshold rings the section and colours the time", () => {
     assert.match(svg, /stroke="#FF8A00"/);
     assert.match(svg, /fill="#FF8A00">04:00</);
 });
-check("a due reminder fills the band with the Due colour, caption in black", () => {
+check("a due reminder fills the band with a deep shade of the Due colour, caption in white", () => {
     const svg = panelSvg(renderLines({}, "dial", { tone: "timeline", caption: "D-15 DUE",
         value: "DEPARTURE BRIEF", sub: "STD 15:00", active: true, alert: true, accent: "#FFD400" }));
-    assert.match(svg, /height="24" rx="14" fill="#FFD400"/);
-    assert.match(svg, /fill="#0A0A0A">D-15 DUE</);
+    assert.match(svg, new RegExp(`height="24" rx="14" fill="${bandFor("#FFD400")}"`));
+    assert.match(svg, /stroke="#FFD400"/, "the ring keeps the bright Due colour");
+    assert.match(svg, /fill="#FFFFFF">D-15 DUE</);
 });
-check("caption ink follows contrast", () => {
-    assert.equal(ink("#FFD400"), "#0A0A0A");
-    assert.equal(ink("#1A1A60"), "#FFFFFF");
+// WCAG contrast of white on a colour.
+const whiteOn = (hex) => {
+    const lin = (v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    const [r, g, b] = [1, 3, 5].map((i) => lin(parseInt(hex.slice(i, i + 2), 16) / 255));
+    return 1.05 / (0.2126 * r + 0.7152 * g + 0.0722 * b + 0.05);
+};
+check("every band reads at 3:1 or better under white captions", () => {
+    for (const tone of ["local", "zulu", "sim", "std", "countdown", "late", "chrono", "timeline"]) {
+        assert.ok(whiteOn(panelColors(tone).band) >= 3, `${tone} band ${panelColors(tone).band}`);
+    }
+    for (const due of ["#FFD400", "#FF8A00", "#00FF7F"]) assert.ok(whiteOn(bandFor(due)) >= 3, due);
+});
+check("the body is plain charcoal, not a tint of the colour", () => {
+    assert.equal(panelColors("zulu").deep, "#141416");
+    assert.equal(panelColors("std").deep, "#141416");
 });
 check("a long caption shrinks to 10px, then is cut with an ellipsis", () => {
     const svg = panelSvg(renderClock({}, "key", { tone: "local", caption: "A VERY LONG CUSTOM CAPTION", value: "12:00" }));

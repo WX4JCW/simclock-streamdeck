@@ -75,10 +75,10 @@ clipped is not.
 
 ## Style
 
-**PANEL** (the default) is the look of the ChasePlane deck plugin: the key or dial section
-is tinted a deep shade of its colour, a solid band across the top carries the header in
-black or white (whichever reads better), the time sits in the middle in a light shade, and
-a ring marks something active. Only flat shapes and text: Stream Deck's SVG renderer did
+**PANEL** (the default) is the look of the Camera Deck for ChasePlane plugin: a plain
+charcoal key or dial section, a solid band across the top in its colour with the header in
+white (bright colours such as gold are darkened until white reads on them), the time in the
+middle in a light shade, and a ring marks something active. Only flat shapes and text: Stream Deck's SVG renderer did
 not draw blur or gradients in tests.
 
 ![The six dials on a Stream Deck + XL: LOCAL, ZULU, SIM, SOBT, a late TO SOBT ringed in red, and a due timeline reminder](docs/touch-strip.png)
@@ -93,7 +93,7 @@ One colour per function:
 | STD | gold |
 | Countdown to STD | orange; red once `LATE` |
 | Chronometer | green, ringed while running |
-| Departure Timeline | pink; the band turns the Due colour while an item is due |
+| Departure Timeline | pink; the band turns a deep shade of the Due colour while an item is due |
 
 A crossed countdown alert rings the section in its colour and colours the time.
 
