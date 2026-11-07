@@ -7,6 +7,7 @@ import { parseEpochSeconds } from "./ofp.js";
  *
  * SOBT is `times/sched_out` -- the same field Datalink Pro treats as authoritative.
  * `sched_off` is takeoff and `sched_in` is arrival; neither is the departure time.
+ * ETA is `times/est_in`, the OFP's estimated in-block time at the destination.
  *
  * An OFP only changes when the user regenerates it, so this polls slowly. Hammering
  * SimBrief's public API would be rude and risks a rate limit.
@@ -20,7 +21,7 @@ const RETRY_INTERVAL_MS = 60_000;
 const MIN_REFRESH_INTERVAL_MS = 30_000;
 
 type OfpResponse = {
-    times?: { sched_out?: string | number };
+    times?: { sched_out?: string | number; est_in?: string | number };
     general?: { icao_airline?: string; flight_number?: string };
     origin?: { icao_code?: string };
     destination?: { icao_code?: string };
@@ -29,6 +30,7 @@ type OfpResponse = {
 class SimBriefFeed {
     #username = "";
     #sobt: Date | null = null;
+    #eta: Date | null = null;
     #timer: NodeJS.Timeout | undefined;
     #inFlight = false;
     /** Avoids repeating the same failure in the log every minute. */
@@ -41,6 +43,11 @@ class SimBriefFeed {
     /** Scheduled off-block time, or null when there's no usable OFP. */
     get sobt(): Date | null {
         return this.#username === "" ? null : this.#sobt;
+    }
+
+    /** Estimated in-block time at the destination, or null when there's no usable OFP. */
+    get eta(): Date | null {
+        return this.#username === "" ? null : this.#eta;
     }
 
     get hasUsername(): boolean {
@@ -59,6 +66,7 @@ class SimBriefFeed {
         this.#username = next;
         this.#paramForm = undefined;
         this.#sobt = null;
+        this.#eta = null;
         this.#lastError = "";
         this.#schedule(0);
     }
@@ -141,6 +149,7 @@ class SimBriefFeed {
                     );
                 } else {
                     this.#sobt = sobt;
+                    this.#eta = parseEpochSeconds(data.times?.est_in);
                     this.#lastError = "";
                     ok = true;
                 }
@@ -156,6 +165,7 @@ class SimBriefFeed {
 
     #fail(message: string): void {
         this.#sobt = null;
+        this.#eta = null;
         if (message !== this.#lastError) {
             streamDeck.logger.info(message);
             this.#lastError = message;

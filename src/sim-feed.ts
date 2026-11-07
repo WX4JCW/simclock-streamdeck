@@ -64,6 +64,11 @@ class SimFeed {
         return new Date(this.#anchorSimMs + elapsed * this.#rate);
     }
 
+    /** Sim seconds per real second, or null when the sim clock is unavailable. */
+    get rate(): number | null {
+        return this.isConnected ? this.#rate : null;
+    }
+
     #isStale(): boolean {
         return Date.now() - this.#lastGoodAt > STALE_AFTER_MS;
     }

@@ -1,6 +1,6 @@
 import type { JsonObject } from "@elgato/utils";
 
-export type TimeSource = "pc" | "zulu" | "sim" | "std" | "tostd";
+export type TimeSource = "pc" | "zulu" | "sim" | "std" | "tostd" | "eta" | "toeta";
 
 export type ClockSettings = {
     source?: TimeSource;
@@ -37,12 +37,14 @@ const SOURCE_LABELS: Record<TimeSource, string> = {
     sim: "SIM",
     std: "STD",
     tostd: "TO STD",
+    eta: "ETA",
+    toeta: "TO ETA",
 };
 
 /** Replaces the TO STD label once scheduled off-block has passed. */
 export const LATE_LABEL = "LATE";
 
-const VALID_SOURCES = new Set<string>(["pc", "zulu", "sim", "std", "tostd"]);
+const VALID_SOURCES = new Set<string>(["pc", "zulu", "sim", "std", "tostd", "eta", "toeta"]);
 
 export function resolveSource(settings: ClockSettings): TimeSource {
     const s = settings.source;
@@ -76,10 +78,10 @@ export function resolveColor(value: string | undefined, fallback: string): strin
 
 /** Sources that read the simulator's clock, and so need the bridge running. */
 export function needsSimBridge(source: TimeSource): boolean {
-    return source === "sim" || source === "tostd";
+    return source === "sim" || source === "tostd" || source === "toeta";
 }
 
 /** Sources that read an OFP from SimBrief. */
 export function needsSimBrief(source: TimeSource): boolean {
-    return source === "std" || source === "tostd";
+    return source === "std" || source === "tostd" || source === "eta" || source === "toeta";
 }

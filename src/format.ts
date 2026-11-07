@@ -40,6 +40,19 @@ export function formatCountdown(
     return { text: `+${formatChrono(-remainingMs)}`, late: true };
 }
 
+/**
+ * Sim rate for the SIM clock's caption: "4X", "0.5X", or "" at normal speed.
+ *
+ * The bridge derives the rate from successive sim clock readings and smooths it, so it
+ * wobbles around the setting rather than landing on it. MSFS rates are powers of two, so
+ * the reading is snapped to the nearest one; anything that snaps to 1x shows nothing.
+ */
+export function simRateLabel(rate: number | null): string {
+    if (rate === null || !Number.isFinite(rate) || rate <= 0) return "";
+    const exponent = Math.min(7, Math.max(-2, Math.round(Math.log2(rate))));
+    return exponent === 0 ? "" : `${2 ** exponent}X`;
+}
+
 function pad(n: number): string {
     return n.toString().padStart(2, "0");
 }

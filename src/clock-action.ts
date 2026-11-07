@@ -14,7 +14,7 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 
 import { Chrono } from "./chrono.js";
-import { formatChrono, formatCountdown, formatHHMM } from "./format.js";
+import { formatChrono, formatCountdown, formatHHMM, simRateLabel } from "./format.js";
 import { renderClock, type Look, type Tone } from "./render.js";
 import { msUntilNextMinute } from "./schedule.js";
 import {
@@ -27,6 +27,7 @@ import {
     type ClockSettings,
     type TimeSource,
 } from "./settings.js";
+import { simFeed } from "./sim-feed.js";
 import { simBriefFeed } from "./simbrief-feed.js";
 import { colorForRemaining, readThresholds } from "./thresholds.js";
 import { timeFor } from "./time-source.js";
@@ -41,6 +42,8 @@ const TONE_FOR: Record<TimeSource, Tone> = {
     sim: "sim",
     std: "std",
     tostd: "countdown",
+    eta: "eta",
+    toeta: "toeta",
 };
 
 /** A placed instance of this action -- a key, or a Stream Deck + dial. */
@@ -185,9 +188,9 @@ export class ClockAction extends SingletonAction<ClockSettings> {
             const state = this.#state.get(instance.id);
             if (state?.chrono?.state === "running") return 1000;
             const source = resolveSource(state?.settings ?? {});
-            // Sim clocks and the countdown both move with sim time, which compression
+            // Sim clocks and the countdowns all move with sim time, which compression
             // makes elapse faster than real time; real minute boundaries would miss it.
-            if (source === "sim" || source === "tostd") needsSeconds = true;
+            if (needsSimBridge(source)) needsSeconds = true;
         }
         if (needsSeconds) return 1000;
 
@@ -267,14 +270,30 @@ export class ClockAction extends SingletonAction<ClockSettings> {
             };
         }
 
+        if (source === "toeta") {
+            // Past the estimate it counts up with a "+", like the departure countdown, but
+            // with no alerts: arriving late is not something a pilot can act on here.
+            return {
+                tone: TONE_FOR[source],
+                caption: resolveHeader(state.settings, defaultHeader(source)),
+                value: formatCountdown(simBriefFeed.eta, timeFor("sim")).text,
+            };
+        }
+
         const value =
             source === "std"
                 ? formatHHMM(simBriefFeed.sobt, source)
-                : formatHHMM(timeFor(source), source);
+                : source === "eta"
+                  ? formatHHMM(simBriefFeed.eta, source)
+                  : formatHHMM(timeFor(source), source);
+
+        // The SIM clock says when the sim runs faster or slower than real time ("SIM 4X").
+        const caption = resolveHeader(state.settings, defaultHeader(source));
+        const rate = source === "sim" ? simRateLabel(simFeed.rate) : "";
 
         return {
             tone: TONE_FOR[source],
-            caption: resolveHeader(state.settings, defaultHeader(source)),
+            caption: rate ? `${caption} ${rate}` : caption,
             value,
         };
     }

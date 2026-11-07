@@ -57,7 +57,7 @@ Per instance of **SimClock**. The timeline has its own, listed further down.
 
 | Setting | Default | Notes |
 |---|---|---|
-| Time Source | PC Time | PC Time / Zulu / Sim Zulu / STD / Countdown to STD |
+| Time Source | PC Time | PC Time / Zulu / Sim Zulu / STD / Countdown to STD / ETA / Countdown to ETA |
 | Header | auto | Blank shows `LOCAL` / `ZULU` / `SIM`; type anything else, e.g. `KJFK` |
 | Style | PANEL | PANEL or CLASSIC; see Style below |
 | Font | Segoe UI | Any font family installed on this PC |
@@ -92,6 +92,8 @@ One colour per function:
 | Sim Zulu | purple |
 | STD | gold |
 | Countdown to STD | orange; red once `LATE` |
+| ETA | cyan |
+| Countdown to ETA | green |
 | Chronometer | green, ringed while running |
 | Departure Timeline | pink; the band turns a deep shade of the Due colour while an item is due |
 
@@ -129,6 +131,10 @@ to real time — a wrong number under a `SIM` header is worse than no number.
 Sim Zulu is the simulator's own UTC. It diverges from real Zulu as soon as you set a
 departure time or compress time; that's the point of having both.
 
+When the sim runs faster or slower than real time, the SIM clock's header says so: `SIM 4X`,
+`SIM 0.5X`. At normal speed it shows nothing extra. The bridge's rate is measured, so it is
+snapped to the nearest MSFS rate (a power of two) to keep it steady.
+
 ## SimBrief
 
 `STD` shows scheduled off-block from your OFP; `Countdown to STD` shows that time minus
@@ -137,6 +143,10 @@ header changes to `LATE` — a header you typed yourself is always kept.
 
 SOBT comes from `times/sched_out`, the same field Datalink Pro treats as authoritative.
 `sched_off` is takeoff and `sched_in` is arrival; neither is the departure time.
+
+`ETA` shows the OFP's estimated in-block time at the destination (`times/est_in`), and
+`Countdown to ETA` that time minus sim Zulu, counting up as `+MM:SS` once past it. It is the
+estimate from the flight plan: a late departure does not move it.
 
 Enter your SimBrief username once in any clock's Property Inspector. Your SimBrief profile
 must have **publicly visible** enabled (Account → Privacy) or the API returns nothing.
@@ -214,8 +224,8 @@ On a Stream Deck + dial:
 | Long press (0.6 s) | Reset, returning to the clock |
 | Touch | Start / stop |
 
-The chronometer belongs to the clock sources. On a dial set to `STD` or
-`Countdown to STD` a press reloads SimBrief instead, and rotation is inert -- a dialled-in
+The chronometer belongs to the clock sources. On a dial set to `STD`, `ETA` or either
+countdown a press reloads SimBrief instead, and rotation is inert -- a dialled-in
 target would otherwise make the chronometer active and hijack the display.
 
 Set a target and it counts down; start from zero and it counts up. While active the

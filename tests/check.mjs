@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 
 import { Chrono } from "../.testbuild/chrono.js";
-import { formatChrono, formatCountdown, formatHHMM, NO_TIME } from "../.testbuild/format.js";
+import { formatChrono, formatCountdown, formatHHMM, NO_TIME, simRateLabel } from "../.testbuild/format.js";
 import { parseEpochSeconds } from "../.testbuild/ofp.js";
 import { colorForRemaining, readThresholds } from "../.testbuild/thresholds.js";
 import { estimateTextWidth, fitFontSize, fitWrapped, bandFor, panelColors, renderClock, renderLines } from "../.testbuild/render.js";
@@ -243,6 +243,8 @@ check("auto header takes the LATE fallback", () =>
 check("only sim-reading sources need the bridge", () => {
     assert.equal(needsSimBridge("sim"), true);
     assert.equal(needsSimBridge("tostd"), true);
+    assert.equal(needsSimBridge("toeta"), true);
+    assert.equal(needsSimBridge("eta"), false);
     assert.equal(needsSimBridge("std"), false);
     assert.equal(needsSimBridge("pc"), false);
     assert.equal(needsSimBridge("zulu"), false);
@@ -250,11 +252,43 @@ check("only sim-reading sources need the bridge", () => {
 check("only OFP-reading sources need SimBrief", () => {
     assert.equal(needsSimBrief("std"), true);
     assert.equal(needsSimBrief("tostd"), true);
+    assert.equal(needsSimBrief("eta"), true);
+    assert.equal(needsSimBrief("toeta"), true);
     assert.equal(needsSimBrief("sim"), false);
     assert.equal(needsSimBrief("pc"), false);
 });
 check("STD renders as UTC, like the other non-pc sources", () =>
     assert.equal(formatHHMM(std, "std"), "20:00"));
+check("ETA renders as UTC too", () =>
+    assert.equal(formatHHMM(std, "eta"), "20:00"));
+check("ETA sources are accepted and get their own auto headers", () => {
+    assert.equal(resolveSource({ source: "eta" }), "eta");
+    assert.equal(resolveSource({ source: "toeta" }), "toeta");
+    assert.equal(resolveHeader({}, defaultHeader("eta")), "ETA");
+    assert.equal(resolveHeader({}, defaultHeader("toeta")), "TO ETA");
+});
+
+console.log("\nsim rate");
+check("normal speed shows nothing", () => assert.equal(simRateLabel(1), ""));
+check("the smoothed rate's wobble around 1x shows nothing", () => {
+    assert.equal(simRateLabel(0.97), "");
+    assert.equal(simRateLabel(1.2), "");
+});
+check("compression snaps to the MSFS power-of-two rate", () => {
+    assert.equal(simRateLabel(4), "4X");
+    assert.equal(simRateLabel(3.8), "4X");
+    assert.equal(simRateLabel(16.4), "16X");
+    assert.equal(simRateLabel(2.1), "2X");
+});
+check("slow motion reads as a fraction", () => {
+    assert.equal(simRateLabel(0.5), "0.5X");
+    assert.equal(simRateLabel(0.26), "0.25X");
+});
+check("no sim, or a nonsense rate, shows nothing", () => {
+    assert.equal(simRateLabel(null), "");
+    assert.equal(simRateLabel(0), "");
+    assert.equal(simRateLabel(Number.NaN), "");
+});
 
 console.log("\ncountdown colour thresholds");
 const BASE = "#00C853";
@@ -679,7 +713,7 @@ const whiteOn = (hex) => {
     return 1.05 / (0.2126 * r + 0.7152 * g + 0.0722 * b + 0.05);
 };
 check("every band reads at 3:1 or better under white captions", () => {
-    for (const tone of ["local", "zulu", "sim", "std", "countdown", "late", "chrono", "timeline"]) {
+    for (const tone of ["local", "zulu", "sim", "std", "countdown", "late", "chrono", "timeline", "eta", "toeta"]) {
         assert.ok(whiteOn(panelColors(tone).band) >= 3, `${tone} band ${panelColors(tone).band}`);
     }
     for (const due of ["#FFD400", "#FF8A00", "#00FF7F"]) assert.ok(whiteOn(bandFor(due)) >= 3, due);

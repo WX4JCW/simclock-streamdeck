@@ -6,7 +6,7 @@ export type Target = "key" | "dial";
  * One colour per SimClock function, as HSL hue and saturation. The Panel style (the same
  * look as the ChasePlane deck plugin) derives every shade on a key from these two numbers.
  */
-export type Tone = "local" | "zulu" | "sim" | "std" | "countdown" | "late" | "chrono" | "timeline";
+export type Tone = "local" | "zulu" | "sim" | "std" | "countdown" | "late" | "chrono" | "timeline" | "eta" | "toeta";
 const TONES: Record<Tone, [number, number]> = {
     local: [170, 60],
     zulu: [212, 80],
@@ -16,6 +16,8 @@ const TONES: Record<Tone, [number, number]> = {
     late: [2, 80],
     chrono: [145, 65],
     timeline: [325, 60],
+    eta: [190, 75],
+    toeta: [100, 55],
 };
 
 function hsl(h: number, s: number, l: number): string {
