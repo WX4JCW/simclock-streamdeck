@@ -59,6 +59,7 @@ Per instance of **SimClock**. The timeline has its own, listed further down.
 |---|---|---|
 | Time Source | PC Time | PC Time / Zulu / Sim Zulu / STD / Countdown to STD / ETA / Countdown to ETA |
 | Turn to switch | _(none)_ | Dials only. Tick two or more clocks and turning steps through them; see below |
+| Departure name | STD | STD / PUSH / SOBT / OUT / DEP; names the departure clock and its countdown (PUSH, TO PUSH) |
 | Header | auto | Blank shows `LOCAL` / `ZULU` / `SIM`; type anything else, e.g. `KJFK` |
 | Style | PANEL | PANEL or CLASSIC; see Style below |
 | Font | Segoe UI | Any font family installed on this PC |
@@ -141,6 +142,11 @@ snapped to the nearest MSFS rate (a power of two) to keep it steady.
 `STD` shows scheduled off-block from your OFP; `Countdown to STD` shows that time minus
 sim Zulu, so it tracks time compression. Past STD it counts up as `+MM:SS` and the auto
 header changes to `LATE` — a header you typed yourself is always kept.
+
+STD is Scheduled Time of Departure: the scheduled off-block time, when the aircraft is due to
+push back, not takeoff. **Departure name** can call it PUSH, SOBT (Scheduled Off-Block Time),
+OUT (the datalink word, as in Out-Off-On-In) or DEP instead; the countdown follows, as
+`TO PUSH` and so on. All five are the same time.
 
 SOBT comes from `times/sched_out`, the same field Datalink Pro treats as authoritative.
 `sched_off` is takeoff and `sched_in` is arrival; neither is the departure time.

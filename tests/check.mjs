@@ -26,6 +26,7 @@ import { baseFamily, cleanFontName, parseRegistryFonts } from "../.testbuild/fon
 import {
     cycleSources,
     defaultHeader,
+    departureName,
     isCycling,
     LATE_LABEL,
     needsSimBrief,
@@ -298,6 +299,26 @@ check("a switching dial ignores a typed header and uses the auto names", () => {
     assert.equal(resolveHeader({ header: "SOBT", cycle: ["std", "tostd"] }, defaultHeader("std")), "STD");
     assert.equal(resolveHeader({ header: "SOBT" }, defaultHeader("std")), "SOBT");
 });
+
+console.log("\ndeparture name");
+check("STD by default, and for anything unknown", () => {
+    assert.equal(departureName({}), "STD");
+    assert.equal(departureName({ depName: "LUNCH" }), "STD");
+});
+check("the chosen name renames the departure clock and its countdown", () => {
+    assert.equal(defaultHeader("std", { depName: "PUSH" }), "PUSH");
+    assert.equal(defaultHeader("tostd", { depName: "PUSH" }), "TO PUSH");
+    assert.equal(defaultHeader("tostd", { depName: "sobt" }), "TO SOBT", "case does not matter");
+    assert.equal(defaultHeader("std", { depName: "OUT" }), "OUT");
+    assert.equal(defaultHeader("tostd", { depName: "DEP" }), "TO DEP");
+});
+check("other clocks keep their names", () => {
+    assert.equal(defaultHeader("eta", { depName: "PUSH" }), "ETA");
+    assert.equal(defaultHeader("pc", { depName: "PUSH" }), "LOCAL");
+});
+check("a switching dial shows the chosen name, not a typed header", () =>
+    assert.equal(resolveHeader({ header: "XYZ", depName: "PUSH", cycle: ["std", "tostd"] },
+        defaultHeader("tostd", { depName: "PUSH" })), "TO PUSH"));
 
 console.log("\nsim rate");
 check("normal speed shows nothing", () => assert.equal(simRateLabel(1), ""));

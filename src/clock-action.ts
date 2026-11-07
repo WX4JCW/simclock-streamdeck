@@ -303,7 +303,7 @@ export class ClockAction extends SingletonAction<ClockSettings> {
 
             return {
                 tone: late ? "late" : "countdown",
-                caption: resolveHeader(state.settings, late ? LATE_LABEL : defaultHeader(source)),
+                caption: resolveHeader(state.settings, late ? LATE_LABEL : defaultHeader(source, state.settings)),
                 value: text,
                 ...(crossed ? { active: true, accent: crossed } : {}),
             };
@@ -314,7 +314,7 @@ export class ClockAction extends SingletonAction<ClockSettings> {
             // with no alerts: arriving late is not something a pilot can act on here.
             return {
                 tone: TONE_FOR[source],
-                caption: resolveHeader(state.settings, defaultHeader(source)),
+                caption: resolveHeader(state.settings, defaultHeader(source, state.settings)),
                 value: formatCountdown(simBriefFeed.eta, timeFor("sim")).text,
             };
         }
@@ -327,7 +327,7 @@ export class ClockAction extends SingletonAction<ClockSettings> {
                   : formatHHMM(timeFor(source), source);
 
         // The SIM clock says when the sim runs faster or slower than real time ("SIM 4X").
-        const caption = resolveHeader(state.settings, defaultHeader(source));
+        const caption = resolveHeader(state.settings, defaultHeader(source, state.settings));
         const rate = source === "sim" ? simRateLabel(simFeed.rate) : "";
 
         return {

@@ -71,6 +71,21 @@
         chronometer.
     </p>
 
+    <sdpi-item label="Departure name">
+        <sdpi-select setting="depName" default="STD">
+            <option value="STD">STD (Scheduled Time of Departure)</option>
+            <option value="PUSH">PUSH</option>
+            <option value="SOBT">SOBT (Scheduled Off-Block Time)</option>
+            <option value="OUT">OUT (datalink Out-Off-On-In)</option>
+            <option value="DEP">DEP</option>
+        </sdpi-select>
+    </sdpi-item>
+
+    <p class="note">
+        All five mean the same time: scheduled off-block from SimBrief, when the aircraft is due
+        to push back. Renames the departure clock and its countdown, e.g. PUSH and TO PUSH.
+    </p>
+
     <sdpi-item label="Header">
         <sdpi-textfield setting="header" placeholder="Auto (LOCAL / ZULU / SIM / STD / ETA)" maxlength="10"></sdpi-textfield>
     </sdpi-item>

@@ -17,6 +17,8 @@ export type ClockSettings = {
     cycle?: string[];
     /** Which of `cycle` is showing, kept so the dial comes back where it was left. */
     cycleIndex?: number;
+    /** What the departure clocks are called: STD, PUSH, SOBT, OUT or DEP (see DEPARTURE_NAMES). */
+    depName?: string;
 } & JsonObject;
 
 /** Plugin-wide settings, shared by every placed instance. */
@@ -88,8 +90,26 @@ export function resolveSource(settings: ClockSettings): TimeSource {
     return typeof s === "string" && VALID_SOURCES.has(s) ? (s as TimeSource) : DEFAULTS.source;
 }
 
-/** The automatic header for a source, before any custom override. */
-export function defaultHeader(source: TimeSource): string {
+/**
+ * Names for the departure clocks, all meaning scheduled off-block (owner, 2026-11-07: "i like
+ * them all"). STD is Scheduled Time of Departure; PUSH is plain English; SOBT is the exact
+ * term; OUT is the datalink word, the first of Out-Off-On-In; DEP is short.
+ */
+const DEPARTURE_NAMES = new Set(["STD", "PUSH", "SOBT", "OUT", "DEP"]);
+
+/** The chosen departure name, STD when none or an unknown one is set. */
+export function departureName(settings: ClockSettings): string {
+    const name = settings.depName?.trim().toUpperCase();
+    return name && DEPARTURE_NAMES.has(name) ? name : "STD";
+}
+
+/**
+ * The automatic header for a source, before any custom override. The departure clocks take
+ * the chosen departure name: PUSH and TO PUSH rather than STD and TO STD.
+ */
+export function defaultHeader(source: TimeSource, settings: ClockSettings = {}): string {
+    if (source === "std") return departureName(settings);
+    if (source === "tostd") return `TO ${departureName(settings)}`;
     return SOURCE_LABELS[source];
 }
 
